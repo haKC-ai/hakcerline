@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { homedir } from 'os';
 import type { ThemeName } from './types.js';
@@ -60,14 +60,35 @@ const GRADIENTS: Record<string, number[]> = {
   matrix:      [22, 28, 34, 40, 46, 82, 118, 154, 190, 226, 190, 154, 118, 82, 46],
 };
 
-function readBanner(bundledRoot: string): string {
+function readBanner(bundledRoot: string): string[] {
   const p = join(bundledRoot, 'assets', 'banner.txt');
-  if (!existsSync(p)) return '';
+  if (!existsSync(p)) return [];
   try {
-    return readFileSync(p, 'utf8');
+    const raw = readFileSync(p, 'utf8');
+    const lines = raw.split('\n');
+    while (lines.length > 0 && lines[lines.length - 1].trim().length === 0) lines.pop();
+    while (lines.length > 0 && lines[0].trim().length === 0) lines.shift();
+    return lines;
   } catch {
-    return '';
+    return [];
   }
+}
+
+function loadSceneFrames(bundledRoot: string): { name: string; frames: string[] } | null {
+  const dir = join(bundledRoot, 'scenes', 'core');
+  if (!existsSync(dir)) return null;
+  const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+  if (files.length === 0) return null;
+  const pick = files[Math.floor(Math.random() * files.length)];
+  try {
+    const data = JSON.parse(readFileSync(join(dir, pick), 'utf8'));
+    if (Array.isArray(data.frames) && data.frames.length > 0) {
+      return { name: data.name ?? pick, frames: data.frames };
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function line(s = '', color = C.gray): string {
@@ -78,36 +99,59 @@ function hr(width = 100): string {
   return line('…'.repeat(width));
 }
 
-function gradientColor(idx: number, total: number, palette: number[]): number {
+function gradientColor(idx: number, total: number, palette: number[], offset = 0): number {
   if (total <= 1) return palette[0];
-  const pos = Math.min(palette.length - 1, Math.floor((idx / total) * (palette.length - 1)));
-  return palette[pos];
+  const base = Math.floor((idx / total) * palette.length);
+  return palette[((base + offset) % palette.length + palette.length) % palette.length];
 }
 
-function renderBanner(bundledRoot: string, paletteName?: keyof typeof GRADIENTS): string {
-  const raw = readBanner(bundledRoot);
-  if (!raw) return '';
-  const palettes = Object.keys(GRADIENTS);
-  const pick = paletteName ?? (palettes[Math.floor(Math.random() * palettes.length)] as keyof typeof GRADIENTS);
-  const palette = GRADIENTS[pick] ?? GRADIENTS.matrix;
-
-  const lines = raw.replace(/\n+$/s, '').split('\n');
+function renderBannerLines(lines: string[], palette: number[], offset: number): string {
   return lines
     .map((l, i) => {
       if (l.trim().length === 0) return l;
-      const color = gradientColor(i, lines.length, palette);
+      const color = gradientColor(i, lines.length, palette, offset);
       return `\x1b[38;5;${color}m${l}${RESET}`;
     })
     .join('\n');
 }
 
-function renderPreview(): string {
-  const top    = `${C.gray}                  ┌─[ ${C.orange}${BOLD}hakcerline${RESET}${C.gray} ]────────────────────────────────────────────┐${RESET}`;
-  const scene  = `${C.gray}                  │ ${C.green}ｦｱｲｳ  ｴ ｵｶｷ ｸｹｺ ｻｼｽ  ｾｿﾀ  ﾁﾂﾃ ﾄﾅﾆ ﾇﾈ ﾉﾊﾋ  ﾌﾍ  ﾎﾏ ﾐﾑﾒ ﾓﾔ${RESET}${C.gray} │${RESET}`;
-  const info   = `${C.gray}                  │ ${C.kali}Opus 4.6${RESET} ${C.gray}│${RESET} ${C.green}$0.00${RESET} ${C.gray}│${RESET} ${C.amber}░░░░░░░░░░ 0%${RESET} ${C.gray}│${RESET} ${C.white}0s${RESET} ${C.gray}│${RESET} ${C.orange}~/hakcerline${RESET}${C.gray}      │${RESET}`;
-  const prompt = `${C.gray}                  │ ${C.orange}▸▸ sample statusline preview${RESET}${C.gray}                              │${RESET}`;
-  const bottom = `${C.gray}                  └──────────────────────────────────────────────────────────┘${RESET}`;
-  return [top, scene, info, prompt, bottom].join('\n');
+function pickPalette(name?: string): number[] {
+  const palettes = Object.keys(GRADIENTS);
+  const pick = (name && GRADIENTS[name]) ? name : palettes[Math.floor(Math.random() * palettes.length)];
+  return GRADIENTS[pick] ?? GRADIENTS.matrix;
+}
+
+const PREVIEW_INDENT = '                  ';
+const PREVIEW_INNER = 70;
+
+function padVisible(s: string, width: number): string {
+  const visible = s.replace(/\x1b\[[0-9;]*m/g, '');
+  const len = Array.from(visible).length;
+  if (len >= width) {
+    const arr = Array.from(visible);
+    return arr.slice(0, width).join('');
+  }
+  return s + ' '.repeat(width - len);
+}
+
+function renderPreview(sceneFrame?: string, sceneName?: string): string {
+  const title = sceneName ? `[ ${C.orange}${BOLD}hakcerline${RESET}${C.gray} · ${DIM}${sceneName}${RESET}${C.gray} ]` : `[ ${C.orange}${BOLD}hakcerline${RESET}${C.gray} ]`;
+  const titleVisible = sceneName ? `[ hakcerline · ${sceneName} ]` : `[ hakcerline ]`;
+  const dashes = '─'.repeat(Math.max(0, PREVIEW_INNER - titleVisible.length - 1));
+  const top = `${C.gray}${PREVIEW_INDENT}┌─${title}${dashes}┐${RESET}`;
+
+  const rawScene = sceneFrame ?? 'ｦｱｲｳ  ｴ ｵｶｷ ｸｹｺ ｻｼｽ  ｾｿﾀ  ﾁﾂﾃ ﾄﾅﾆ ﾇﾈ ﾉﾊﾋ  ﾌﾍ  ﾎﾏ ﾐﾑﾒ ﾓﾔ';
+  const sceneText = Array.from(rawScene).slice(0, PREVIEW_INNER - 2).join('');
+  const sceneLine = `${C.gray}${PREVIEW_INDENT}│ ${C.green}${padVisible(sceneText, PREVIEW_INNER - 2)}${RESET}${C.gray} │${RESET}`;
+
+  const infoText = `${C.kali}Opus 4.6${RESET} ${C.gray}│${RESET} ${C.green}$0.00${RESET} ${C.gray}│${RESET} ${C.amber}░░░░░░░░░░ 0%${RESET} ${C.gray}│${RESET} ${C.white}0s${RESET} ${C.gray}│${RESET} ${C.orange}~/hakcerline${RESET}`;
+  const info = `${C.gray}${PREVIEW_INDENT}│ ${padVisible(infoText, PREVIEW_INNER - 2)}${C.gray} │${RESET}`;
+
+  const promptText = `${C.orange}▸▸ sample statusline preview${RESET}`;
+  const prompt = `${C.gray}${PREVIEW_INDENT}│ ${padVisible(promptText, PREVIEW_INNER - 2)}${C.gray} │${RESET}`;
+
+  const bottom = `${C.gray}${PREVIEW_INDENT}└${'─'.repeat(PREVIEW_INNER)}┘${RESET}`;
+  return [top, sceneLine, info, prompt, bottom].join('\n');
 }
 
 function renderMenu(state: State): string {
@@ -213,8 +257,10 @@ export async function runInstaller(bundledRoot: string): Promise<InstallerResult
     return { packs: ['all'], theme: 'matrix', duration: 30, confirmed: true };
   }
 
-  const banner = renderBanner(bundledRoot);
-  const preview = renderPreview();
+  const bannerLines = readBanner(bundledRoot);
+  const palette = pickPalette();
+  const scene = loadSceneFrames(bundledRoot);
+  let tick = 0;
 
   return new Promise<InstallerResult>((resolvePromise) => {
     stdin.setRawMode(true);
@@ -225,15 +271,24 @@ export async function runInstaller(bundledRoot: string): Promise<InstallerResult
     const draw = () => {
       stdout.write(CLEAR);
       stdout.write('\n');
-      if (banner) stdout.write(banner + '\n\n');
-      stdout.write(preview + '\n\n');
+      if (bannerLines.length > 0) {
+        stdout.write(renderBannerLines(bannerLines, palette, tick) + '\n');
+      }
+      const frame = scene ? scene.frames[tick % scene.frames.length] : undefined;
+      stdout.write(renderPreview(frame, scene?.name) + '\n');
       stdout.write(renderMenu(state) + '\n');
       if (state.durationPrompt) {
         stdout.write(`\n ${C.amber}duration seconds:${RESET} ${state.durationBuffer}${BOLD}_${RESET}\n`);
       }
     };
 
+    const animTimer = setInterval(() => {
+      tick++;
+      draw();
+    }, 120);
+
     const cleanup = () => {
+      clearInterval(animTimer);
       stdout.write(SHOW_CURSOR);
       stdin.setRawMode(false);
       stdin.pause();
@@ -365,11 +420,12 @@ export function installerRootFromFile(indexFile: string): string {
   return resolve(indexFile, '..', '..');
 }
 
-export function printMenuStatic(bundledRoot: string, palette?: string): void {
-  const banner = renderBanner(bundledRoot, palette as keyof typeof GRADIENTS | undefined);
-  process.stdout.write('\n');
-  if (banner) process.stdout.write(banner + '\n\n');
-  process.stdout.write(renderPreview() + '\n\n');
+export function printMenuStatic(bundledRoot: string, paletteName?: string): void {
+  const stdout = process.stdout;
+  const stdin = process.stdin;
+  const bannerLines = readBanner(bundledRoot);
+  const palette = pickPalette(paletteName);
+  const scene = loadSceneFrames(bundledRoot);
   const state: State = {
     cursor: 0,
     selected: new Set<string>(),
@@ -378,5 +434,48 @@ export function printMenuStatic(bundledRoot: string, palette?: string): void {
     durationPrompt: false,
     durationBuffer: '',
   };
-  process.stdout.write(renderMenu(state) + '\n');
+
+  if (!stdout.isTTY) {
+    if (bannerLines.length > 0) stdout.write(renderBannerLines(bannerLines, palette, 0) + '\n');
+    stdout.write(renderPreview(scene?.frames[0], scene?.name) + '\n');
+    stdout.write(renderMenu(state) + '\n');
+    return;
+  }
+
+  stdout.write(HIDE_CURSOR);
+  let tick = 0;
+  const draw = () => {
+    stdout.write(CLEAR);
+    stdout.write('\n');
+    if (bannerLines.length > 0) stdout.write(renderBannerLines(bannerLines, palette, tick) + '\n');
+    const frame = scene ? scene.frames[tick % scene.frames.length] : undefined;
+    stdout.write(renderPreview(frame, scene?.name) + '\n');
+    stdout.write(renderMenu(state) + '\n');
+    stdout.write(`\n ${DIM}preview · press q or Ctrl-C to exit${RESET}\n`);
+  };
+
+  const timer = setInterval(() => { tick++; draw(); }, 120);
+
+  const cleanup = () => {
+    clearInterval(timer);
+    stdout.write(SHOW_CURSOR);
+    if (stdin.isTTY) {
+      stdin.setRawMode(false);
+      stdin.pause();
+    }
+    process.exit(0);
+  };
+
+  if (stdin.isTTY) {
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    stdin.on('data', (k: string) => {
+      if (k === 'q' || k === 'Q' || k === '\x03' || k === '\r' || k === '\n') cleanup();
+    });
+  }
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+
+  draw();
 }
