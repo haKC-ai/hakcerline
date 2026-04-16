@@ -9,7 +9,7 @@
 
 # hakcerline
 
-![hakcerline decrypt intro](assets/banner.gif)
+![hakcerline beams intro](assets/banner.gif)
 
 [![npm](https://img.shields.io/npm/v/hakcerline?color=46&label=npm&logo=npm)](https://www.npmjs.com/package/hakcerline)
 [![downloads](https://img.shields.io/npm/dm/hakcerline?color=208&label=installs)](https://www.npmjs.com/package/hakcerline)
@@ -229,7 +229,7 @@ stateDiagram-v2
 ## prior art & acks
 
 - **[`ccusage`](https://www.npmjs.com/package/ccusage)** — the Claude Code cost/rate tracker. The info row reads the same stdin JSON shape `ccusage` exposes (model, cost, context %, elapsed, worktree, 5h rate). If you want numbers without scenery, use `ccusage` directly.
-- **[`terminaltexteffects`](https://pypi.org/project/terminaltexteffects/)** — the TTE pip module powering the installer's decrypt intro. Gallery of 30 TTE effects applied to the `hakcerline` banner lives in [`assets/animated/`](assets/animated/).
+- **[`terminaltexteffects`](https://pypi.org/project/terminaltexteffects/)** — the TTE pip module powering the installer's decrypt intro. The `beams` effect applied to the hakcerline banner is the repo cover art at [`assets/animated/haKCerline_beams.gif`](assets/animated/haKCerline_beams.gif).
 - **`hakcer`** — the terminal ASCII bling pip module that inspired this one. Different surface area, same spirit.
 
 ---
