@@ -9,7 +9,8 @@
   "files": [
     "dist/",
     "scenes/",
-    "assets/",
+    "assets/banner.txt",
+    "assets/banner.gif",
     "README.md"
   ],
   "scripts": {
