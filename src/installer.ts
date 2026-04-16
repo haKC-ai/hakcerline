@@ -197,10 +197,8 @@ function renderPreview(sceneFrame?: string, sceneName?: string): string {
 
 function renderMenu(state: State): string {
   const lines: string[] = [];
-  lines.push(hr());
-  lines.push(` ${C.white}Pick your scene packs. You can change these later in ${C.amber}~/.config/hakcerline/config.json${RESET}`);
-  lines.push(` ${DIM}[space]${RESET} multi-select · ${DIM}[a]${RESET} all/none · ${DIM}[t]${RESET} cycle theme · ${DIM}[d]${RESET} duration · ${DIM}[enter]${RESET} confirm · ${DIM}[q]${RESET} quit`);
-  lines.push('');
+  lines.push(` ${C.white}Pick your scene packs. Edit later in ${C.amber}~/.config/hakcerline/config.json${RESET}`);
+  lines.push(` ${DIM}[space]${RESET} select · ${DIM}[a]${RESET} all/none · ${DIM}[t]${RESET} theme · ${DIM}[d]${RESET} duration · ${DIM}[enter]${RESET} confirm · ${DIM}[q]${RESET} quit`);
   for (let i = 0; i < CHOICES.length; i++) {
     const c = CHOICES[i];
     const cursor = i === state.cursor ? `${C.orange}❯${RESET}` : ' ';
@@ -214,16 +212,7 @@ function renderMenu(state: State): string {
     const defMark = c.id === 'all' && state.selected.size === 0 ? ` ${DIM}[ default ]${RESET}` : '';
     lines.push(` ${cursor} ${num} ${check} ${label}${pad} ${detail.padEnd(60)} ${count}${defMark}`);
   }
-  lines.push('');
-  lines.push(` ${C.gray}theme:${RESET}    ${themeSwatches(state.theme)}`);
-  lines.push(` ${C.gray}duration:${RESET} ${C.amber}${state.duration}s${RESET} ${DIM}per scene${RESET}`);
-  lines.push('');
-  lines.push(hr());
-  lines.push(` ${DIM}GREETZ:${RESET} SecKC • Badge Pirates • 2600Hz crew • the hakcer pypi module • nano`);
-  lines.push(` ${DIM}SHOUTZ:${RESET} #seckc on discord • seckc.org • darkcode.ai`);
-  lines.push(`                           ${C.gray}───── ▓ signed, /dev/haKCØRY.23: ▓ ─────${RESET}`);
-  lines.push(`                                ${DIM}"nano > vim. come fite me."${RESET}`);
-  lines.push(hr());
+  lines.push(` ${C.gray}theme:${RESET} ${themeSwatches(state.theme)}   ${C.gray}duration:${RESET} ${C.amber}${state.duration}s${RESET}`);
   return lines.join('\n');
 }
 
