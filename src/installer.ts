@@ -115,6 +115,46 @@ function renderBannerLines(lines: string[], palette: number[], offset: number): 
     .join('\n');
 }
 
+const SCRAMBLE_POOL = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+const DECRYPT_TICKS = 28;
+
+interface DecryptCell { target: string; settleAt: number; }
+
+function buildDecryptGrid(lines: string[]): DecryptCell[][] {
+  return lines.map((l) =>
+    Array.from(l).map((ch) => ({
+      target: ch,
+      settleAt: ch === ' ' ? 0 : Math.floor(Math.random() * (DECRYPT_TICKS - 6)) + 6,
+    })),
+  );
+}
+
+function randomScrambleChar(): string {
+  return SCRAMBLE_POOL[Math.floor(Math.random() * SCRAMBLE_POOL.length)];
+}
+
+function renderDecryptFrame(grid: DecryptCell[][], tick: number, palette: number[]): string {
+  return grid
+    .map((row, i) => {
+      if (row.length === 0) return '';
+      const done = row.every((c) => tick >= c.settleAt);
+      const color = gradientColor(i, grid.length, palette, done ? 0 : tick);
+      const text = row
+        .map((c) => {
+          if (tick >= c.settleAt) return c.target;
+          if (c.target === ' ') return ' ';
+          return randomScrambleChar();
+        })
+        .join('');
+      return `\x1b[38;5;${color}m${text}${RESET}`;
+    })
+    .join('\n');
+}
+
+function decryptDone(grid: DecryptCell[][], tick: number): boolean {
+  return tick >= DECRYPT_TICKS;
+}
+
 function pickPalette(name?: string): number[] {
   const palettes = Object.keys(GRADIENTS);
   const pick = (name && GRADIENTS[name]) ? name : palettes[Math.floor(Math.random() * palettes.length)];
@@ -260,6 +300,7 @@ export async function runInstaller(bundledRoot: string): Promise<InstallerResult
   const bannerLines = readBanner(bundledRoot);
   const palette = pickPalette();
   const scene = loadSceneFrames(bundledRoot);
+  const decryptGrid = buildDecryptGrid(bannerLines);
   let tick = 0;
 
   return new Promise<InstallerResult>((resolvePromise) => {
@@ -272,7 +313,10 @@ export async function runInstaller(bundledRoot: string): Promise<InstallerResult
       stdout.write(CLEAR);
       stdout.write('\n');
       if (bannerLines.length > 0) {
-        stdout.write(renderBannerLines(bannerLines, palette, tick) + '\n');
+        const bannerOut = decryptDone(decryptGrid, tick)
+          ? renderBannerLines(bannerLines, palette, tick - DECRYPT_TICKS)
+          : renderDecryptFrame(decryptGrid, tick, palette);
+        stdout.write(bannerOut + '\n');
       }
       const frame = scene ? scene.frames[tick % scene.frames.length] : undefined;
       stdout.write(renderPreview(frame, scene?.name) + '\n');
@@ -285,7 +329,7 @@ export async function runInstaller(bundledRoot: string): Promise<InstallerResult
     const animTimer = setInterval(() => {
       tick++;
       draw();
-    }, 120);
+    }, 60);
 
     const cleanup = () => {
       clearInterval(animTimer);
@@ -444,17 +488,23 @@ export function printMenuStatic(bundledRoot: string, paletteName?: string): void
 
   stdout.write(HIDE_CURSOR);
   let tick = 0;
+  const decryptGrid = buildDecryptGrid(bannerLines);
   const draw = () => {
     stdout.write(CLEAR);
     stdout.write('\n');
-    if (bannerLines.length > 0) stdout.write(renderBannerLines(bannerLines, palette, tick) + '\n');
+    if (bannerLines.length > 0) {
+      const bannerOut = decryptDone(decryptGrid, tick)
+        ? renderBannerLines(bannerLines, palette, tick - DECRYPT_TICKS)
+        : renderDecryptFrame(decryptGrid, tick, palette);
+      stdout.write(bannerOut + '\n');
+    }
     const frame = scene ? scene.frames[tick % scene.frames.length] : undefined;
     stdout.write(renderPreview(frame, scene?.name) + '\n');
     stdout.write(renderMenu(state) + '\n');
     stdout.write(`\n ${DIM}preview · press q or Ctrl-C to exit${RESET}\n`);
   };
 
-  const timer = setInterval(() => { tick++; draw(); }, 120);
+  const timer = setInterval(() => { tick++; draw(); }, 60);
 
   const cleanup = () => {
     clearInterval(timer);
