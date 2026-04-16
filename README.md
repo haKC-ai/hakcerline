@@ -11,6 +11,18 @@
 
 ![hakcerline decrypt intro](assets/banner.gif)
 
+[![npm](https://img.shields.io/npm/v/hakcerline?color=46&label=npm&logo=npm)](https://www.npmjs.com/package/hakcerline)
+[![downloads](https://img.shields.io/npm/dm/hakcerline?color=208&label=installs)](https://www.npmjs.com/package/hakcerline)
+[![node](https://img.shields.io/node/v/hakcerline?color=39)](https://nodejs.org)
+[![license](https://img.shields.io/github/license/haKC-ai/hakcerline?color=141)](LICENSE)
+[![stars](https://img.shields.io/github/stars/haKC-ai/hakcerline?style=flat&color=214)](https://github.com/haKC-ai/hakcerline)
+[![issues](https://img.shields.io/github/issues/haKC-ai/hakcerline?color=203)](https://github.com/haKC-ai/hakcerline/issues)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-statusLine-000?logo=anthropic)](https://docs.anthropic.com/claude/docs/claude-code)
+[![ccusage](https://img.shields.io/badge/reads-ccusage-46?logo=npm)](https://www.npmjs.com/package/ccusage)
+[![scenes](https://img.shields.io/badge/scenes-47-208)](scenes/)
+[![deps](https://img.shields.io/badge/runtime%20deps-0-46)](package.json)
+[![SecKC](https://img.shields.io/badge/GREETZ-SecKC-ff6b35)](https://seckc.org)
+
 Three-row animated statusline for **Claude Code**. Top row cycles through themed scenes — Matrix rain, WarGames, BBS login prompts, `nmap` sweeps, AOHell, DEFCON levels, Sub7, SecKC meetup nights. Middle row is your session metadata. Bottom row is the prompt.
 
 Pre-rendered. Stateless. Reads stdin, prints three lines, exits.
@@ -31,6 +43,7 @@ Remove it:
 ```bash
 npx hakcerline uninstall
 ```
+Removes the `statusLine` block from `~/.claude/settings.json`, then prompts before nuking `~/.config/hakcerline/` (config + custom scenes).
 
 Inspect the scene library:
 ```bash
@@ -139,7 +152,7 @@ Frames are pre-rendered strings, ~120 chars wide, any length array. Runtime pads
 ## how it works
 
 1. Claude Code calls `hakcerline` every render tick
-2. stdin = session JSON (model, cost, context %, cwd, worktree, rate limits)
+2. stdin = session JSON (model, cost, context %, cwd, worktree, rate limits — same shape [`ccusage`](https://www.npmjs.com/package/ccusage) reads)
 3. pick scene + frame from wall clock: `Math.floor(Date.now()/1000/duration) % N`
 4. pick frame index: `Math.floor(elapsed * 12.5)`
 5. pad/truncate to terminal width
@@ -148,11 +161,76 @@ Frames are pre-rendered strings, ~120 chars wide, any length array. Runtime pads
 
 Two invocations 80ms apart read sequential frames. The clock is the state.
 
+```mermaid
+flowchart LR
+  CC[Claude Code] -- session JSON --> STDIN[stdin]
+  STDIN --> P[parseInput]
+  P --> CFG[loadConfig\n~/.config/hakcerline]
+  CFG --> SCENES[loadScenes\nbundled + custom]
+  SCENES --> PICK[getSceneAndFrame\nDate.now / duration]
+  PICK --> FRAME[frame string]
+  FRAME --> FIT[fitToWidth\npad/truncate]
+  FIT --> COLOR[theme colorize]
+  COLOR --> R1[row 1 · scene]
+  P --> INFO[buildInfoRow\nmodel · $cost · ctx · elapsed · cwd · git · 5h%]
+  INFO --> R2[row 2 · info]
+  P --> PR[buildPromptRow]
+  PR --> R3[row 3 · prompt]
+  R1 --> OUT[stdout]
+  R2 --> OUT
+  R3 --> OUT
+  OUT --> CC
+```
+
+### data the info row borrows
+
+```mermaid
+flowchart TD
+  subgraph ccusage_fields[ccusage-style fields]
+    M[model]
+    C[cost_usd]
+    CTX[context_pct]
+    EL[elapsed_sec]
+    CWD[cwd]
+    GIT[git_worktree]
+    RL[5h_rate_limit]
+  end
+  M --> IR[info row]
+  C --> IR
+  CTX --> IR
+  EL --> IR
+  CWD --> IR
+  GIT --> IR
+  RL --> IR
+  IR --> STATUSLINE[hakcerline row 2]
+```
+
+### install/uninstall flow
+
+```mermaid
+stateDiagram-v2
+  [*] --> install: npx hakcerline install
+  install --> TUI: runInstaller banner + menu
+  TUI --> write_cfg: enter
+  write_cfg --> write_settings: ~/.claude/settings.json
+  write_settings --> active: restart Claude Code
+  active --> [*]
+  active --> uninstall: npx hakcerline uninstall
+  uninstall --> remove_statusline: delete statusLine key
+  remove_statusline --> nuke_prompt: prompt y/N
+  nuke_prompt --> wipe: y — rm -rf ~/.config/hakcerline
+  nuke_prompt --> keep: N — leave config
+  wipe --> [*]
+  keep --> [*]
+```
+
 ---
 
-## prior art
+## prior art & acks
 
-`hakcerline` is the terminal-statusline descendant of [`hakcer`](https://pypi.org/) — the pip module that ships haX0r ASCII bling for any shell. Different surface area, same spirit.
+- **[`ccusage`](https://www.npmjs.com/package/ccusage)** — the Claude Code cost/rate tracker. The info row reads the same stdin JSON shape `ccusage` exposes (model, cost, context %, elapsed, worktree, 5h rate). If you want numbers without scenery, use `ccusage` directly.
+- **[`terminaltexteffects`](https://pypi.org/project/terminaltexteffects/)** — the TTE pip module powering the installer's decrypt intro. Gallery of 30 TTE effects applied to the `hakcerline` banner lives in [`assets/animated/`](assets/animated/).
+- **`hakcer`** — the terminal ASCII bling pip module that inspired this one. Different surface area, same spirit.
 
 ---
 

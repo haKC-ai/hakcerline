@@ -11,13 +11,16 @@ import {
   terminalWidth,
 } from './renderer.js';
 import {
+  hakcerlineConfigDir,
   installerRootFromFile,
   printMenuStatic,
   removeClaudeSettings,
+  removeHakcerlineConfig,
   runInstaller,
   writeClaudeSettings,
   writeHakcerlineConfig,
 } from './installer.js';
+import { existsSync } from 'fs';
 import type { ClaudeInput } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,11 +61,39 @@ async function cmdInstall(): Promise<void> {
   console.log('\nrestart Claude Code to see the statusline light up.');
 }
 
-function cmdUninstall(): void {
+function promptYesNo(question: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const stdin = process.stdin;
+    const stdout = process.stdout;
+    stdout.write(question);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    const onData = (data: string) => {
+      stdin.pause();
+      stdin.removeListener('data', onData);
+      const answer = data.trim().toLowerCase();
+      resolve(answer === 'y' || answer === 'yes');
+    };
+    stdin.on('data', onData);
+  });
+}
+
+async function cmdUninstall(): Promise<void> {
   try {
     const removed = removeClaudeSettings();
-    if (removed) console.log(`hakcerline: removed statusLine from ${removed}`);
-    else console.log('hakcerline: no statusLine set, nothing to remove');
+    if (removed) console.log(`\x1b[38;5;46m✓\x1b[0m removed statusLine from ${removed}`);
+    else console.log('hakcerline: no statusLine set');
+
+    const cfgDir = hakcerlineConfigDir();
+    if (existsSync(cfgDir)) {
+      const nuke = await promptYesNo(`\nalso nuke \x1b[38;5;203m${cfgDir}\x1b[0m (config + custom scenes)? [y/N] `);
+      if (nuke) {
+        const wiped = removeHakcerlineConfig();
+        if (wiped) console.log(`\x1b[38;5;46m✓\x1b[0m wiped ${wiped}`);
+      } else {
+        console.log('  kept config dir');
+      }
+    }
   } catch (e) {
     console.error(`hakcerline: ${(e as Error).message}`);
     process.exit(1);
@@ -143,7 +174,7 @@ async function main(): Promise<void> {
       await cmdInstall();
       return;
     case 'uninstall':
-      cmdUninstall();
+      await cmdUninstall();
       return;
     case 'list':
       cmdList();

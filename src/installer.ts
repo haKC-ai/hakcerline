@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, rmSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { homedir } from 'os';
 import type { ThemeName } from './types.js';
@@ -443,6 +443,17 @@ export function writeClaudeSettings(): string {
   };
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
   return settingsPath;
+}
+
+export function hakcerlineConfigDir(): string {
+  return join(homedir(), '.config', 'hakcerline');
+}
+
+export function removeHakcerlineConfig(): string | null {
+  const dir = hakcerlineConfigDir();
+  if (!existsSync(dir)) return null;
+  rmSync(dir, { recursive: true, force: true });
+  return dir;
 }
 
 export function removeClaudeSettings(): string | null {
