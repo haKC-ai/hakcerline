@@ -15,6 +15,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "prepare": "tsc || true",
     "prerender": "python3 scripts/prerender.py",
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js"
