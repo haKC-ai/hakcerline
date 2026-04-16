@@ -4,7 +4,7 @@
   "description": "Animated hacker statusline for Claude Code. 47 themed scenes. Stateless. Zero runtime deps.",
   "type": "module",
   "bin": {
-    "hakcerline": "./dist/index.js"
+    "hakcerline": "dist/index.js"
   },
   "files": [
     "dist/",
