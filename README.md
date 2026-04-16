@@ -9,6 +9,8 @@
 
 # hakcerline
 
+![hakcerline decrypt intro](assets/banner.gif)
+
 Three-row animated statusline for **Claude Code**. Top row cycles through themed scenes — Matrix rain, WarGames, BBS login prompts, `nmap` sweeps, AOHell, DEFCON levels, Sub7, SecKC meetup nights. Middle row is your session metadata. Bottom row is the prompt.
 
 Pre-rendered. Stateless. Reads stdin, prints three lines, exits.
