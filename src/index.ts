@@ -51,7 +51,7 @@ async function cmdInstall(): Promise<void> {
     return;
   }
   const configPath = writeHakcerlineConfig(result);
-  const settingsPath = writeClaudeSettings();
+  const settingsPath = writeClaudeSettings(__filename);
   console.log('');
   console.log(`\x1b[38;5;46m✓\x1b[0m hakcerline config   → ${configPath}`);
   console.log(`\x1b[38;5;46m✓\x1b[0m claude statusLine   → ${settingsPath}`);

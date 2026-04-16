@@ -413,7 +413,14 @@ export function writeHakcerlineConfig(result: InstallerResult): string {
   return path;
 }
 
-export function writeClaudeSettings(): string {
+function resolveStatuslineCommand(indexFile: string): string {
+  const abs = resolve(indexFile);
+  const ephemeral = abs.includes('/_npx/') || abs.startsWith('/tmp/');
+  if (!ephemeral && existsSync(abs)) return abs;
+  return 'npx -y hakcerline@latest';
+}
+
+export function writeClaudeSettings(indexFile: string): string {
   const settingsPath = join(homedir(), '.claude', 'settings.json');
   let settings: Record<string, unknown> = {};
   if (existsSync(settingsPath)) {
@@ -427,7 +434,7 @@ export function writeClaudeSettings(): string {
   }
   settings.statusLine = {
     type: 'command',
-    command: 'npx -y hakcerline@latest',
+    command: resolveStatuslineCommand(indexFile),
     padding: 0,
   };
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
