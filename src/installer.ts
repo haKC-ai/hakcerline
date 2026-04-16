@@ -99,17 +99,17 @@ function hr(width = 100): string {
   return line('…'.repeat(width));
 }
 
-function gradientColor(idx: number, total: number, palette: number[], offset = 0): number {
+function gradientColor(idx: number, total: number, palette: number[]): number {
   if (total <= 1) return palette[0];
-  const base = Math.floor((idx / total) * palette.length);
-  return palette[((base + offset) % palette.length + palette.length) % palette.length];
+  const i = Math.floor((idx / total) * (palette.length - 1));
+  return palette[Math.min(i, palette.length - 1)];
 }
 
-function renderBannerLines(lines: string[], palette: number[], offset: number): string {
+function renderBannerLines(lines: string[], palette: number[]): string {
   return lines
     .map((l, i) => {
       if (l.trim().length === 0) return l;
-      const color = gradientColor(i, lines.length, palette, offset);
+      const color = gradientColor(i, lines.length, palette);
       return `\x1b[38;5;${color}m${l}${RESET}`;
     })
     .join('\n');
@@ -117,6 +117,7 @@ function renderBannerLines(lines: string[], palette: number[], offset: number): 
 
 const SCRAMBLE_POOL = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const DECRYPT_TICKS = 28;
+const SCENE_FRAME_DIV = 5;
 
 interface DecryptCell { target: string; settleAt: number; }
 
@@ -133,20 +134,20 @@ function randomScrambleChar(): string {
   return SCRAMBLE_POOL[Math.floor(Math.random() * SCRAMBLE_POOL.length)];
 }
 
+const SCRAMBLE_COLOR = 51;
+
 function renderDecryptFrame(grid: DecryptCell[][], tick: number, palette: number[]): string {
   return grid
     .map((row, i) => {
       if (row.length === 0) return '';
-      const done = row.every((c) => tick >= c.settleAt);
-      const color = gradientColor(i, grid.length, palette, done ? 0 : tick);
-      const text = row
+      const finalColor = gradientColor(i, grid.length, palette);
+      return row
         .map((c) => {
-          if (tick >= c.settleAt) return c.target;
+          if (tick >= c.settleAt) return `\x1b[38;5;${finalColor}m${c.target}${RESET}`;
           if (c.target === ' ') return ' ';
-          return randomScrambleChar();
+          return `\x1b[38;5;${SCRAMBLE_COLOR}m${randomScrambleChar()}${RESET}`;
         })
         .join('');
-      return `\x1b[38;5;${color}m${text}${RESET}`;
     })
     .join('\n');
 }
@@ -314,11 +315,12 @@ export async function runInstaller(bundledRoot: string): Promise<InstallerResult
       stdout.write('\n');
       if (bannerLines.length > 0) {
         const bannerOut = decryptDone(decryptGrid, tick)
-          ? renderBannerLines(bannerLines, palette, tick - DECRYPT_TICKS)
+          ? renderBannerLines(bannerLines, palette)
           : renderDecryptFrame(decryptGrid, tick, palette);
         stdout.write(bannerOut + '\n');
       }
-      const frame = scene ? scene.frames[tick % scene.frames.length] : undefined;
+      const frameIdx = Math.floor(tick / SCENE_FRAME_DIV);
+      const frame = scene ? scene.frames[frameIdx % scene.frames.length] : undefined;
       stdout.write(renderPreview(frame, scene?.name) + '\n');
       stdout.write(renderMenu(state) + '\n');
       if (state.durationPrompt) {
@@ -480,7 +482,7 @@ export function printMenuStatic(bundledRoot: string, paletteName?: string): void
   };
 
   if (!stdout.isTTY) {
-    if (bannerLines.length > 0) stdout.write(renderBannerLines(bannerLines, palette, 0) + '\n');
+    if (bannerLines.length > 0) stdout.write(renderBannerLines(bannerLines, palette) + '\n');
     stdout.write(renderPreview(scene?.frames[0], scene?.name) + '\n');
     stdout.write(renderMenu(state) + '\n');
     return;
@@ -494,11 +496,12 @@ export function printMenuStatic(bundledRoot: string, paletteName?: string): void
     stdout.write('\n');
     if (bannerLines.length > 0) {
       const bannerOut = decryptDone(decryptGrid, tick)
-        ? renderBannerLines(bannerLines, palette, tick - DECRYPT_TICKS)
+        ? renderBannerLines(bannerLines, palette)
         : renderDecryptFrame(decryptGrid, tick, palette);
       stdout.write(bannerOut + '\n');
     }
-    const frame = scene ? scene.frames[tick % scene.frames.length] : undefined;
+    const frameIdx = Math.floor(tick / SCENE_FRAME_DIV);
+    const frame = scene ? scene.frames[frameIdx % scene.frames.length] : undefined;
     stdout.write(renderPreview(frame, scene?.name) + '\n');
     stdout.write(renderMenu(state) + '\n');
     stdout.write(`\n ${DIM}preview · press q or Ctrl-C to exit${RESET}\n`);
