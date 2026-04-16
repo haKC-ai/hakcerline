@@ -50,6 +50,16 @@ interface InstallerResult {
   confirmed: boolean;
 }
 
+const GRADIENTS: Record<string, number[]> = {
+  cyan_blue:   [51, 50, 49, 48, 47, 45, 39, 38, 37, 33, 32, 31, 27, 26, 25],
+  purple_pink: [57, 93, 129, 165, 201, 200, 199, 198, 197, 196, 163, 127, 91, 55],
+  green_cyan:  [22, 28, 34, 40, 46, 47, 48, 49, 50, 51, 45, 39, 33, 27],
+  fire:        [196, 202, 208, 214, 220, 226, 227, 228, 229, 230, 229, 228, 214, 208],
+  ocean:       [17, 18, 19, 20, 21, 27, 33, 39, 45, 51, 50, 49, 48, 47, 46],
+  synthwave:   [201, 200, 199, 163, 127, 91, 55, 56, 57, 93, 129, 165, 201],
+  matrix:      [22, 28, 34, 40, 46, 82, 118, 154, 190, 226, 190, 154, 118, 82, 46],
+};
+
 function readBanner(bundledRoot: string): string {
   const p = join(bundledRoot, 'assets', 'banner.txt');
   if (!existsSync(p)) return '';
@@ -68,12 +78,26 @@ function hr(width = 100): string {
   return line('…'.repeat(width));
 }
 
-function renderBanner(bundledRoot: string): string {
+function gradientColor(idx: number, total: number, palette: number[]): number {
+  if (total <= 1) return palette[0];
+  const pos = Math.min(palette.length - 1, Math.floor((idx / total) * (palette.length - 1)));
+  return palette[pos];
+}
+
+function renderBanner(bundledRoot: string, paletteName?: keyof typeof GRADIENTS): string {
   const raw = readBanner(bundledRoot);
   if (!raw) return '';
-  return raw
-    .split('\n')
-    .map((l) => `${C.orange}${l}${RESET}`)
+  const palettes = Object.keys(GRADIENTS);
+  const pick = paletteName ?? (palettes[Math.floor(Math.random() * palettes.length)] as keyof typeof GRADIENTS);
+  const palette = GRADIENTS[pick] ?? GRADIENTS.matrix;
+
+  const lines = raw.replace(/\n+$/s, '').split('\n');
+  return lines
+    .map((l, i) => {
+      if (l.trim().length === 0) return l;
+      const color = gradientColor(i, lines.length, palette);
+      return `\x1b[38;5;${color}m${l}${RESET}`;
+    })
     .join('\n');
 }
 
@@ -200,7 +224,8 @@ export async function runInstaller(bundledRoot: string): Promise<InstallerResult
 
     const draw = () => {
       stdout.write(CLEAR);
-      if (banner) stdout.write(banner + '\n');
+      stdout.write('\n');
+      if (banner) stdout.write(banner + '\n\n');
       stdout.write(preview + '\n\n');
       stdout.write(renderMenu(state) + '\n');
       if (state.durationPrompt) {
@@ -340,9 +365,10 @@ export function installerRootFromFile(indexFile: string): string {
   return resolve(indexFile, '..', '..');
 }
 
-export function printMenuStatic(bundledRoot: string): void {
-  const banner = renderBanner(bundledRoot);
-  if (banner) process.stdout.write(banner + '\n');
+export function printMenuStatic(bundledRoot: string, palette?: string): void {
+  const banner = renderBanner(bundledRoot, palette as keyof typeof GRADIENTS | undefined);
+  process.stdout.write('\n');
+  if (banner) process.stdout.write(banner + '\n\n');
   process.stdout.write(renderPreview() + '\n\n');
   const state: State = {
     cursor: 0,

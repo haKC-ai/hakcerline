@@ -150,7 +150,7 @@ async function main(): Promise<void> {
       return;
     case 'menu':
     case 'preview':
-      printMenuStatic(BUNDLED_ROOT);
+      printMenuStatic(BUNDLED_ROOT, process.argv[3]);
       return;
     case 'version':
     case '-v':
