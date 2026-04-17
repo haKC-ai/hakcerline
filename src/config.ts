@@ -30,7 +30,7 @@ export function loadConfig(): Config {
       packs: Array.isArray(raw.packs) ? raw.packs : DEFAULT_CONFIG.packs,
       duration: typeof raw.duration === 'number' && raw.duration > 0 ? raw.duration : DEFAULT_CONFIG.duration,
       theme: VALID_THEMES.includes(raw.theme) ? raw.theme : DEFAULT_CONFIG.theme,
-      effect: typeof raw.effect === 'string' ? raw.effect : null,
+      effect: typeof raw.effect === 'string' ? raw.effect : DEFAULT_CONFIG.effect,
       paused: raw.paused === true,
       customScenesDir: typeof raw.customScenesDir === 'string' ? expandHome(raw.customScenesDir) : DEFAULT_CONFIG.customScenesDir,
       exclude: Array.isArray(raw.exclude) ? raw.exclude : DEFAULT_CONFIG.exclude,
