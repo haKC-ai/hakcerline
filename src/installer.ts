@@ -105,11 +105,74 @@ function gradientColor(idx: number, total: number, palette: number[]): number {
   return palette[Math.min(i, palette.length - 1)];
 }
 
+const SKULL_ICON = '█▄███▄█';
+const SKULL_TOP = '█████';
+const SKULL_COLOR = 208;
+
+function findSkullLines(lines: string[]): Set<number> {
+  const result = new Set<number>();
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes(SKULL_ICON)) {
+      result.add(i);      // line with █▄███▄█
+      if (i > 0) result.add(i - 1); // line above = skull top █████
+    }
+  }
+  return result;
+}
+
+function findSkullRangesInLine(line: string, isSkullLine: boolean): [number, number][] {
+  if (!isSkullLine) return [];
+  const ranges: [number, number][] = [];
+  const iconIdx = line.indexOf(SKULL_ICON);
+  if (iconIdx !== -1) {
+    ranges.push([iconIdx, iconIdx + SKULL_ICON.length]);
+    return ranges;
+  }
+  // This is the line above — find the █████ that aligns with the skull
+  // It's the standalone one surrounded by spaces
+  let searchFrom = 0;
+  let idx: number;
+  while ((idx = line.indexOf(SKULL_TOP, searchFrom)) !== -1) {
+    const before = idx > 0 ? line[idx - 1] : ' ';
+    const after = idx + SKULL_TOP.length < line.length ? line[idx + SKULL_TOP.length] : ' ';
+    if (before === ' ' && after === ' ') {
+      ranges.push([idx, idx + SKULL_TOP.length]);
+      break; // only the first standalone match on this line
+    }
+    searchFrom = idx + 1;
+  }
+  return ranges;
+}
+
+function colorLineWithSkull(line: string, lineColor: number, ranges: [number, number][]): string {
+  if (line.trim().length === 0) return line;
+  if (ranges.length === 0) return `\x1b[38;5;${lineColor}m${line}${RESET}`;
+
+  ranges.sort((a, b) => a[0] - b[0]);
+  let result = '';
+  let pos = 0;
+  for (const [start, end] of ranges) {
+    if (pos < start) {
+      result += `\x1b[38;5;${lineColor}m${line.slice(pos, start)}${RESET}`;
+    }
+    result += `\x1b[38;5;${SKULL_COLOR}m${line.slice(start, end)}${RESET}`;
+    pos = end;
+  }
+  if (pos < line.length) {
+    result += `\x1b[38;5;${lineColor}m${line.slice(pos)}${RESET}`;
+  }
+  return result;
+}
+
 function renderBannerLines(lines: string[], palette: number[]): string {
+  const skullLines = findSkullLines(lines);
   return lines
     .map((l, i) => {
       if (l.trim().length === 0) return l;
       const color = gradientColor(i, lines.length, palette);
+      if (skullLines.has(i)) {
+        return colorLineWithSkull(l, color, findSkullRangesInLine(l, true));
+      }
       return `\x1b[38;5;${color}m${l}${RESET}`;
     })
     .join('\n');
@@ -136,14 +199,28 @@ function randomScrambleChar(): string {
 
 const SCRAMBLE_COLOR = 51;
 
+function isSkullCharInGrid(grid: DecryptCell[][], rowIdx: number, colIdx: number): boolean {
+  const lines = grid.map((r) => r.map((c) => c.target).join(''));
+  const skullLines = findSkullLines(lines);
+  if (!skullLines.has(rowIdx)) return false;
+  const ranges = findSkullRangesInLine(lines[rowIdx], true);
+  return ranges.some(([start, end]) => colIdx >= start && colIdx < end);
+}
+
 function renderDecryptFrame(grid: DecryptCell[][], tick: number, palette: number[]): string {
+  const lines = grid.map((r) => r.map((c) => c.target).join(''));
+  const skullLines = findSkullLines(lines);
   return grid
     .map((row, i) => {
       if (row.length === 0) return '';
       const finalColor = gradientColor(i, grid.length, palette);
+      const isSkull = skullLines.has(i);
+      const ranges = isSkull ? findSkullRangesInLine(lines[i], true) : [];
       return row
-        .map((c) => {
-          if (tick >= c.settleAt) return `\x1b[38;5;${finalColor}m${c.target}${RESET}`;
+        .map((c, j) => {
+          const inSkull = ranges.some(([s, e]) => j >= s && j < e);
+          const color = inSkull ? SKULL_COLOR : finalColor;
+          if (tick >= c.settleAt) return `\x1b[38;5;${color}m${c.target}${RESET}`;
           if (c.target === ' ') return ' ';
           return `\x1b[38;5;${SCRAMBLE_COLOR}m${randomScrambleChar()}${RESET}`;
         })
