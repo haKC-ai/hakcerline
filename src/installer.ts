@@ -513,6 +513,37 @@ export function writeClaudeSettings(indexFile: string): string {
   return settingsPath;
 }
 
+export function writeClaudeCommands(bundledRoot: string): string[] {
+  const commandsDir = join(homedir(), '.claude', 'commands');
+  mkdirSync(commandsDir, { recursive: true });
+  const srcDir = join(bundledRoot, 'commands');
+  if (!existsSync(srcDir)) return [];
+  const written: string[] = [];
+  for (const file of readdirSync(srcDir)) {
+    if (!file.endsWith('.md')) continue;
+    const src = join(srcDir, file);
+    const dest = join(commandsDir, file);
+    writeFileSync(dest, readFileSync(src, 'utf8'));
+    written.push(dest);
+  }
+  return written;
+}
+
+export function removeClaudeCommands(): string[] {
+  const commandsDir = join(homedir(), '.claude', 'commands');
+  if (!existsSync(commandsDir)) return [];
+  const removed: string[] = [];
+  const prefixes = ['hakcerline.md', 'hakcerline-hack.md', 'hakcerline-help.md'];
+  for (const file of prefixes) {
+    const p = join(commandsDir, file);
+    if (existsSync(p)) {
+      rmSync(p);
+      removed.push(p);
+    }
+  }
+  return removed;
+}
+
 export function hakcerlineConfigDir(): string {
   return join(homedir(), '.config', 'hakcerline');
 }

@@ -21,9 +21,11 @@ import {
   hakcerlineConfigDir,
   installerRootFromFile,
   printMenuStatic,
+  removeClaudeCommands,
   removeClaudeSettings,
   removeHakcerlineConfig,
   runInstaller,
+  writeClaudeCommands,
   writeClaudeSettings,
   writeHakcerlineConfig,
 } from './installer.js';
@@ -59,9 +61,13 @@ async function cmdInstall(): Promise<void> {
   }
   const configPath = writeHakcerlineConfig(result);
   const settingsPath = writeClaudeSettings(__filename);
+  const commands = writeClaudeCommands(BUNDLED_ROOT);
   console.log('');
   console.log(`\x1b[38;5;46m✓\x1b[0m hakcerline config   → ${configPath}`);
   console.log(`\x1b[38;5;46m✓\x1b[0m claude statusLine   → ${settingsPath}`);
+  for (const cmd of commands) {
+    console.log(`\x1b[38;5;46m✓\x1b[0m slash command       → ${cmd}`);
+  }
   console.log(`\x1b[38;5;208m  packs:\x1b[0m ${result.packs.join(', ')}`);
   console.log(`\x1b[38;5;208m  theme:\x1b[0m ${result.theme}`);
   console.log(`\x1b[38;5;208m  duration:\x1b[0m ${result.duration}s`);
@@ -90,6 +96,11 @@ async function cmdUninstall(): Promise<void> {
     const removed = removeClaudeSettings();
     if (removed) console.log(`\x1b[38;5;46m✓\x1b[0m removed statusLine from ${removed}`);
     else console.log('hakcerline: no statusLine set');
+
+    const cmds = removeClaudeCommands();
+    for (const cmd of cmds) {
+      console.log(`\x1b[38;5;46m✓\x1b[0m removed command ${cmd}`);
+    }
 
     const cfgDir = hakcerlineConfigDir();
     if (existsSync(cfgDir)) {
