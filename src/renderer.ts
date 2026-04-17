@@ -139,12 +139,12 @@ export function colorizeScene(frame: string, theme: ThemeName, sceneIdx: number,
   return batchRender(specs);
 }
 
-export function getSceneAndFrame(numScenes: number, duration: number, fps = 12.5): [number, number] {
+export function getSceneAndFrame(numScenes: number, duration: number, totalFrames = 400): [number, number] {
   const now = Date.now() / 1000;
   const sceneIdx = Math.floor(now / duration) % numScenes;
   const sceneStart = Math.floor(now / duration) * duration;
   const elapsed = now - sceneStart;
-  const frameNum = Math.floor(elapsed * fps);
+  const frameNum = Math.floor((elapsed / duration) * totalFrames) % totalFrames;
   return [sceneIdx, frameNum];
 }
 
