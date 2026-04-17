@@ -1,5 +1,5 @@
-import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
-import { join, resolve } from 'path';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
+import { join, resolve, dirname } from 'path';
 import { homedir } from 'os';
 import type { Config, Scene, ThemeName } from './types.js';
 
@@ -7,6 +7,8 @@ const DEFAULT_CONFIG: Config = {
   packs: ['all'],
   duration: 30,
   theme: 'random',
+  effect: null,
+  paused: false,
   customScenesDir: null,
   exclude: [],
   only: null,
@@ -28,6 +30,8 @@ export function loadConfig(): Config {
       packs: Array.isArray(raw.packs) ? raw.packs : DEFAULT_CONFIG.packs,
       duration: typeof raw.duration === 'number' && raw.duration > 0 ? raw.duration : DEFAULT_CONFIG.duration,
       theme: VALID_THEMES.includes(raw.theme) ? raw.theme : DEFAULT_CONFIG.theme,
+      effect: typeof raw.effect === 'string' ? raw.effect : null,
+      paused: raw.paused === true,
       customScenesDir: typeof raw.customScenesDir === 'string' ? expandHome(raw.customScenesDir) : DEFAULT_CONFIG.customScenesDir,
       exclude: Array.isArray(raw.exclude) ? raw.exclude : DEFAULT_CONFIG.exclude,
       only: Array.isArray(raw.only) && raw.only.length > 0 ? raw.only : null,
@@ -94,4 +98,30 @@ export function loadScenes(config: Config, bundledDir: string): Scene[] {
 
 export function resolveBundledScenesDir(fromFile: string): string {
   return resolve(fromFile, '..', '..', 'scenes');
+}
+
+export const VALID_THEME_LIST = VALID_THEMES;
+export const EFFECT_LIST = ['wave', 'rain', 'decrypt', 'sparkle', 'beams'];
+
+function configPath(): string {
+  return join(homedir(), '.config', 'hakcerline', 'config.json');
+}
+
+function readRawConfig(): Record<string, unknown> {
+  const p = configPath();
+  if (!existsSync(p)) return {};
+  try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return {}; }
+}
+
+function writeRawConfig(raw: Record<string, unknown>): string {
+  const p = configPath();
+  mkdirSync(dirname(p), { recursive: true });
+  writeFileSync(p, JSON.stringify(raw, null, 2) + '\n');
+  return p;
+}
+
+export function setConfigKey(key: string, value: unknown): string {
+  const raw = readRawConfig();
+  raw[key] = value;
+  return writeRawConfig(raw);
 }

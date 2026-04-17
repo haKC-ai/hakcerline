@@ -9,6 +9,8 @@ export interface Config {
   packs: string[];
   duration: number;
   theme: ThemeName;
+  effect: string | null;
+  paused: boolean;
   customScenesDir: string | null;
   exclude: string[];
   only: string[] | null;

@@ -2,13 +2,13 @@
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { loadConfig, loadScenes, resolveBundledScenesDir } from './config.js';
+import { loadConfig, loadScenes, resolveBundledScenesDir, setConfigKey, VALID_THEME_LIST, EFFECT_LIST } from './config.js';
 import {
-  buildInfoRow,
-  buildPromptRow,
+  buildInfoRowStyled,
   getSceneAndFrame,
   sceneLineFor,
   terminalWidth,
+  type InfoContext,
 } from './renderer.js';
 import {
   hakcerlineConfigDir,
@@ -131,16 +131,94 @@ function cmdVersion(): void {
   }
 }
 
+function cmdTheme(name?: string): void {
+  if (!name) {
+    const cfg = loadConfig();
+    console.log(`current: ${cfg.theme}`);
+    console.log(`available: ${VALID_THEME_LIST.join(', ')}`);
+    return;
+  }
+  if (!VALID_THEME_LIST.includes(name as any)) {
+    console.log(`unknown theme: ${name}`);
+    console.log(`available: ${VALID_THEME_LIST.join(', ')}`);
+    return;
+  }
+  setConfigKey('theme', name);
+  console.log(`\x1b[38;5;46m✓\x1b[0m theme → ${name}`);
+}
+
+function cmdEffect(name?: string): void {
+  if (!name) {
+    const cfg = loadConfig();
+    console.log(`current: ${cfg.effect ?? 'auto (cycles per scene)'}`);
+    console.log(`available: ${EFFECT_LIST.join(', ')}, auto`);
+    return;
+  }
+  if (name === 'auto' || name === 'reset') {
+    setConfigKey('effect', null);
+    console.log(`\x1b[38;5;46m✓\x1b[0m effect → auto`);
+    return;
+  }
+  if (!EFFECT_LIST.includes(name)) {
+    console.log(`unknown effect: ${name}`);
+    console.log(`available: ${EFFECT_LIST.join(', ')}, auto`);
+    return;
+  }
+  setConfigKey('effect', name);
+  console.log(`\x1b[38;5;46m✓\x1b[0m effect → ${name}`);
+}
+
+function cmdPause(): void {
+  const cfg = loadConfig();
+  const next = !cfg.paused;
+  setConfigKey('paused', next);
+  console.log(`\x1b[38;5;46m✓\x1b[0m animation ${next ? 'paused' : 'resumed'}`);
+}
+
+function cmdDuration(val?: string): void {
+  if (!val) {
+    const cfg = loadConfig();
+    console.log(`current: ${cfg.duration}s`);
+    return;
+  }
+  const n = parseInt(val, 10);
+  if (!n || n < 5) {
+    console.log('duration must be >= 5 seconds');
+    return;
+  }
+  setConfigKey('duration', n);
+  console.log(`\x1b[38;5;46m✓\x1b[0m duration → ${n}s`);
+}
+
+function cmdStatus(): void {
+  const cfg = loadConfig();
+  const scenes = loadScenes(cfg, BUNDLED_SCENES);
+  console.log(`\x1b[1;38;5;51mhakcerline status\x1b[0m`);
+  console.log(`  theme:    ${cfg.theme}`);
+  console.log(`  effect:   ${cfg.effect ?? 'auto'}`);
+  console.log(`  duration: ${cfg.duration}s`);
+  console.log(`  paused:   ${cfg.paused}`);
+  console.log(`  scenes:   ${scenes.length}`);
+  console.log(`  packs:    ${cfg.packs.join(', ')}`);
+}
+
 function cmdHelp(): void {
   console.log(`hakcerline — animated statusline for Claude Code
 
 usage:
-  hakcerline install      write statusLine to ~/.claude/settings.json
-  hakcerline uninstall    remove statusLine from settings.json
-  hakcerline list         list loaded scenes
-  hakcerline menu         render the installer menu (non-interactive preview)
-  hakcerline version      print version
-  hakcerline help         show this
+  hakcerline install              write statusLine to ~/.claude/settings.json
+  hakcerline uninstall            remove statusLine from settings.json
+  hakcerline list                 list loaded scenes
+  hakcerline menu                 render the installer menu (non-interactive preview)
+  hakcerline version              print version
+  hakcerline help                 show this
+
+live controls (takes effect next tick):
+  hakcerline theme [name]         get/set theme (${VALID_THEME_LIST.join(', ')})
+  hakcerline effect [name]        get/set effect (${EFFECT_LIST.join(', ')}, auto)
+  hakcerline pause                toggle animation on/off
+  hakcerline duration [seconds]   get/set scene duration
+  hakcerline status               show current config
 
 normal mode (called by Claude Code):
   echo '{...}' | hakcerline
@@ -154,20 +232,30 @@ function renderStatusline(): void {
     const input = parseInput(readStdinSync());
     const width = terminalWidth();
 
+    const [idx, frameNum] = scenes.length > 0
+      ? getSceneAndFrame(scenes.length, config.duration)
+      : [0, 0];
+
     let sceneLine: string;
-    if (scenes.length === 0) {
+    let infoCtx: InfoContext | undefined;
+
+    if (config.paused || scenes.length === 0) {
       sceneLine = ''.padEnd(width);
     } else {
-      const [idx, frameNum] = getSceneAndFrame(scenes.length, config.duration);
-      sceneLine = sceneLineFor(scenes[idx].frames, frameNum, width, config.theme, idx);
+      sceneLine = sceneLineFor(scenes[idx].frames, frameNum, width, config.theme, idx, config.effect);
+      const activeEffect = config.effect ?? EFFECT_LIST[idx % EFFECT_LIST.length];
+      infoCtx = {
+        sceneName: scenes[idx].name,
+        effectName: activeEffect,
+        themeName: config.theme,
+      };
     }
 
-    const infoLine = buildInfoRow(input);
-    const promptLine = buildPromptRow(input);
+    const infoLine = buildInfoRowStyled(input, infoCtx);
 
-    process.stdout.write(sceneLine + '\n' + infoLine + '\n' + promptLine + '\n');
+    process.stdout.write(sceneLine + '\n' + infoLine + '\n');
   } catch {
-    process.stdout.write('\n\n\n');
+    process.stdout.write('\n\n');
   }
 }
 
@@ -186,6 +274,30 @@ async function main(): Promise<void> {
     case 'menu':
     case 'preview':
       printMenuStatic(BUNDLED_ROOT, process.argv[3]);
+      return;
+    case 'theme':
+    case 't':
+      cmdTheme(process.argv[3]);
+      return;
+    case 'effect':
+    case 'fx':
+    case 'e':
+      cmdEffect(process.argv[3]);
+      return;
+    case 'pause':
+    case 'toggle':
+    case 'p':
+      cmdPause();
+      return;
+    case 'hide':
+    case 'h':
+      cmdPause();
+      return;
+    case 'duration':
+      cmdDuration(process.argv[3]);
+      return;
+    case 'status':
+      cmdStatus();
       return;
     case 'version':
     case '-v':

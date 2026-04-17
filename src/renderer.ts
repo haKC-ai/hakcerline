@@ -130,13 +130,108 @@ function batchRender(specs: ColorSpec[]): string {
   return out;
 }
 
-export function colorizeScene(frame: string, theme: ThemeName, sceneIdx: number, frameNum: number): string {
+export function colorizeScene(frame: string, theme: ThemeName, sceneIdx: number, frameNum: number, forcedEffect?: string | null): string {
   const palette = resolvePalette(theme, sceneIdx);
   const chars = Array.from(frame);
   if (chars.length === 0) return frame;
-  const effect = EFFECTS[EFFECT_NAMES[sceneIdx % EFFECT_NAMES.length]];
+  const effect = (forcedEffect && EFFECTS[forcedEffect])
+    ? EFFECTS[forcedEffect]
+    : EFFECTS[EFFECT_NAMES[sceneIdx % EFFECT_NAMES.length]];
   const specs = effect(chars, palette, frameNum);
   return batchRender(specs);
+}
+
+const C = {
+  cyan: 51, teal: 43, aqua: 49, sky: 45, steel: 38, dark: 37,
+  blue: 44, dim: 240, bardim: 238, green: 48, warn: 214, crit: 203,
+};
+
+function ctxColor(pct: number): number {
+  if (pct >= 80) return C.crit;
+  if (pct >= 60) return C.warn;
+  return C.blue;
+}
+
+function rateColor(pct: number): number {
+  if (pct >= 80) return C.crit;
+  if (pct >= 50) return C.warn;
+  return C.steel;
+}
+
+function shortDir(p: string): string {
+  const h = process.env.HOME;
+  if (h && p.startsWith(h)) p = '~' + p.slice(h.length);
+  const segs = p.split('/').filter(Boolean);
+  if (segs.length <= 2) return p;
+  return segs.slice(-2).join('/');
+}
+
+export interface InfoContext {
+  effectName: string;
+  sceneName: string;
+  themeName: string;
+}
+
+const S = `\x1b[38;5;240m \u2733 \x1b[0m`; // ✳ separator
+
+// Representative color per theme — used for the [t] label
+const THEME_ACCENT: Record<string, number> = {
+  cyan_blue: 51, purple_pink: 201, green_cyan: 46, fire: 208,
+  ocean: 39, synthwave: 165, matrix: 46, random: 51,
+};
+
+function themeColor(name: string): number {
+  return THEME_ACCENT[name] ?? 51;
+}
+
+export function buildInfoRowStyled(input: ClaudeInput, ctx?: InfoContext): string {
+  const parts: string[] = [];
+
+  // rate
+  const five = input.rate_limits?.five_hour?.used_percentage ?? 0;
+  parts.push(`\x1b[38;5;${rateColor(five)}m\uf0e4 ${Math.round(five)}%\x1b[0m`);
+
+  // elapsed
+  const durMs = input.cost?.total_duration_ms ?? 0;
+  parts.push(`\x1b[38;5;${C.dark}m\uf017 ${formatDuration(durMs)}\x1b[0m`);
+
+  // model
+  const model = input.model?.display_name ?? input.model?.id ?? 'Claude';
+  parts.push(`\x1b[1;38;5;${C.cyan}m${model}\x1b[0m`);
+
+  // context bar
+  const ctxPct = input.context_window?.used_percentage ?? 0;
+  const w = 8;
+  const filled = Math.max(0, Math.min(w, Math.round((ctxPct / 100) * w)));
+  const cc = ctxColor(ctxPct);
+  parts.push(`\x1b[38;5;${cc}m${'█'.repeat(filled)}\x1b[38;5;${C.bardim}m${'░'.repeat(w - filled)}\x1b[0m \x1b[38;5;${cc}m${Math.round(ctxPct)}%\x1b[0m`);
+
+  // cost
+  const cost = input.cost?.total_cost_usd ?? 0;
+  const fmt = cost >= 10 ? cost.toFixed(1) : cost.toFixed(2);
+  parts.push(`\x1b[38;5;${C.teal}m\uf155${fmt}\x1b[0m`);
+
+  let left = parts.join(S);
+
+  // right side: cwd, lines, controls
+  const rparts: string[] = [];
+
+  const cwd = input.workspace?.current_dir ?? '';
+  rparts.push(`\x1b[38;5;${C.aqua}m\uf07c ${cwd ? shortDir(cwd) : '~'}\x1b[0m`);
+
+  const a = input.cost?.total_lines_added ?? 0;
+  const r = input.cost?.total_lines_removed ?? 0;
+  rparts.push(`\x1b[38;5;${C.green}m+${a}\x1b[38;5;${C.dim}m/\x1b[38;5;${C.crit}m-${r}\x1b[0m`);
+
+  if (ctx) {
+    const tc = themeColor(ctx.themeName);
+    const scene = `\x1b[38;5;240m[\x1b[38;5;228me\x1b[38;5;240m]\x1b[38;5;213m${ctx.sceneName}\x1b[0m`;
+    const effect = `\x1b[38;5;240m[\x1b[38;5;228mt\x1b[38;5;240m]\x1b[38;5;${tc}m${ctx.effectName}\x1b[0m`;
+    const hint = `\x1b[38;5;${C.dim}m/hakcerline\x1b[0m`;
+    rparts.push(`${scene} ${effect} ${hint}`);
+  }
+
+  return left + S + rparts.join(S);
 }
 
 export function getSceneAndFrame(numScenes: number, duration: number, totalFrames = 400): [number, number] {
@@ -169,34 +264,33 @@ function homify(p: string): string {
   return p;
 }
 
-export function buildInfoRow(input: ClaudeInput): string {
+export function buildInfoRowPlain(input: ClaudeInput): string {
   const parts: string[] = [];
-  const sep = `${SEG.sep} | ${RESET}`;
 
   const model = input.model?.display_name ?? input.model?.id ?? 'Claude';
-  parts.push(`${SEG.model}${BOLD}${model}${RESET}`);
+  parts.push(model);
 
   const cost = input.cost?.total_cost_usd;
-  if (typeof cost === 'number') parts.push(`${SEG.cost}$${cost.toFixed(2)}${RESET}`);
+  if (typeof cost === 'number') parts.push(`$${cost.toFixed(2)}`);
 
   const ctxPct = input.context_window?.used_percentage;
   if (typeof ctxPct === 'number') {
-    parts.push(`${SEG.ctx}${contextBar(ctxPct)} ${Math.round(ctxPct)}%${RESET}`);
+    parts.push(`${contextBar(ctxPct)} ${Math.round(ctxPct)}%`);
   }
 
   const durMs = input.cost?.total_duration_ms;
-  if (typeof durMs === 'number') parts.push(`${SEG.elapsed}${formatDuration(durMs)}${RESET}`);
+  if (typeof durMs === 'number') parts.push(formatDuration(durMs));
 
   const cwd = input.workspace?.current_dir;
-  if (cwd) parts.push(`${SEG.cwd}${homify(cwd)}${RESET}`);
+  if (cwd) parts.push(homify(cwd));
 
   const wt = input.workspace?.git_worktree;
-  if (wt) parts.push(`${SEG.git}⎇ ${wt}${RESET}`);
+  if (wt) parts.push(`⎇ ${wt}`);
 
   const five = input.rate_limits?.five_hour?.used_percentage;
-  if (typeof five === 'number') parts.push(`${SEG.rate}5h:${Math.round(five)}%${RESET}`);
+  if (typeof five === 'number') parts.push(`5h:${Math.round(five)}%`);
 
-  return parts.join(sep);
+  return parts.join(' | ');
 }
 
 export function buildPromptRow(input: ClaudeInput): string {
@@ -204,10 +298,10 @@ export function buildPromptRow(input: ClaudeInput): string {
   return `${SEG.cwd}${BOLD}${name}${RESET}${SEG.sep} ▸${RESET}`;
 }
 
-export function sceneLineFor(frames: string[], frameNum: number, width: number, theme: ThemeName, sceneIdx: number): string {
+export function sceneLineFor(frames: string[], frameNum: number, width: number, theme: ThemeName, sceneIdx: number, forcedEffect?: string | null): string {
   const frame = frames[frameNum % frames.length];
   const fitted = fitToWidth(frame, width);
-  return colorizeScene(fitted, theme, sceneIdx, frameNum);
+  return colorizeScene(fitted, theme, sceneIdx, frameNum, forcedEffect);
 }
 
 export function stripAnsiLen(s: string): number {
