@@ -266,11 +266,11 @@ function renderStatusline(): void {
 
     const infoLine = truncateAnsi(buildInfoRowStyled(input, infoCtx), width);
 
-    process.stdout.write(sceneLine + '\n' + infoLine + '\n');
+    process.stdout.write(sceneLine + '\n' + infoLine);
     debugLog(`STDIN len=${rawStdin.length} width=${width}`);
   } catch (e) {
     debugLog(`ERROR ${(e as Error).message}`);
-    process.stdout.write('\n\n');
+    process.stdout.write('\n');
   }
 }
 
