@@ -1,8 +1,8 @@
 ```
  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
  ▓                                                                                                           ▓
- ▓     h a k c e r l i n e   //   animated statusline for Claude Code · v0.3.0 · release: 2026-04-17         ▓
- ▓     47 themed scenes · 7 color palettes · 5 TTE effects · live controls · 0 runtime deps                  ▓
+ ▓     h a k c e r l i n e   //   animated statusline for Claude Code · v0.4.0 · release: 2026-04-17         ▓
+ ▓     47 themed scenes · 13 color palettes · 10 effects · live controls · 0 runtime deps                    ▓
  ▓                                                                                                           ▓
  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 ```
@@ -23,11 +23,11 @@
 [![deps](https://img.shields.io/badge/runtime%20deps-0-46)](package.json)
 [![SecKC](https://img.shields.io/badge/GREETZ-SecKC-ff6b35)](https://seckc.org)
 
-Two-row animated statusline for **Claude Code**. Top row cycles through 47 themed scenes — hexdumps, WarGames, BBS login prompts, `nmap` sweeps, AOHell, DEFCON levels, Sub7, ICQ, SecKC meetup nights — each with per-character TTE color effects. Bottom row is your session HUD: model, cost, context window, elapsed time, code delta, rate limits, and live controls.
+Two-row animated statusline for **Claude Code**. Top row shows themed scenes — hexdumps, WarGames, BBS login prompts, nmap sweeps, AOHell, DEFCON levels, Sub7, ICQ, SecKC meetup nights — with smooth color gradients that sweep across static text. Bottom row is your session HUD: model, cost, context window, elapsed time, code delta, rate limits, and live controls.
 
 ```
- 0xdead1050  69 16 45 b1 8e ed ec 34  48 e7 f0 f0 0b a5 52 fb  |i.E....4H.....R.|
-  8% ✳  11m16s ✳ Opus 4.6 ✳ █░░░░░░░ 16% ✳ $0.19 ✳  personal/hakcerline ✳ +0/-0 ✳ [e]Hexdump [t]wave /hakcerline
+ nmap ▸ 22/tcp open ssh  80/tcp open http  443/tcp open https ── ◐ scanning
+  8% ✳  11m16s ✳ Opus 4.6 ✳ █░░░░░░░ 16% ✳ $0.19 ✳  personal/hakcerline ✳ +0/-0 ✳ [e]Nmap Sweep [t]glow /hakcerline
 ```
 
 Pre-rendered. Stateless. Reads stdin, prints two lines, exits.
@@ -52,38 +52,38 @@ hakcerline uninstall
 
 ## what you get
 
-**Row 1** — animated scene with per-character color effects (wave, rain, decrypt, sparkle, beams), cycling through 7 gradient palettes
+**Row 1** — themed scene with color gradient animation. Text stays still, colors sweep across it at 1fps. Scenes rotate every 30 seconds by default.
 
 **Row 2** — session HUD:
 
 ```
-  2% ✳  7m30s ✳ Opus 4.6 ✳ ███░░░░░ 38% ✳ $2.47 ✳  personal/myproj ✳ +186/-42 ✳ [e]Hexdump [t]sparkle /hakcerline
+  2% ✳  7m30s ✳ Opus 4.6 ✳ ███░░░░░ 38% ✳ $2.47 ✳  personal/myproj ✳ +186/-42 ✳ [e]Hexdump [t]glow /hakcerline
 ```
 
-| segment | glyph | what | color |
-|---|---|---|---|
-| rate limit |  | 5h usage % | cyan → amber → red |
-| elapsed |  | session time | dark cyan |
-| model | | model name | bright cyan bold |
-| context | █░ | token window usage | blue → amber → red |
-| cost |  | session cost | teal |
-| cwd |  | working dir (last 2 segments) | aqua |
-| lines | +/- | code added/removed | green / red |
-| scene | [e] | current scene name | pink |
-| effect | [t] | current color effect | themed |
-| help | | slash command hint | dim |
+| segment | what | color |
+|---|---|---|
+| rate limit | 5h usage % | cyan to amber to red |
+| elapsed | session time | dark cyan |
+| model | model name | bright cyan bold |
+| context | token window bar | blue to amber to red |
+| cost | session cost USD | teal |
+| cwd | working dir | aqua |
+| lines | code added/removed | green / red |
+| scene | current scene [e] | pink |
+| effect | current effect [t] | themed |
+| help | /hakcerline hint | dim |
 
-Context bar and rate limit shift from cool to warm as they fill — you'll notice when things get hot.
+Context bar and rate limit shift from cool to warm as they fill.
 
 ---
 
 ## live controls
 
-Change theme, effect, or pause animation without leaving Claude Code:
+Change theme, effect, or pause without leaving Claude Code:
 
 ```bash
-hakcerline theme fire          # or: hakcerline t fire
-hakcerline effect sparkle      # or: hakcerline e sparkle
+hakcerline theme frost         # or: hakcerline t frost
+hakcerline effect glow         # or: hakcerline e glow
 hakcerline pause               # or: hakcerline p
 hakcerline hide                # or: hakcerline h
 hakcerline status              # show current config
@@ -96,9 +96,10 @@ Type these right in the Claude Code prompt:
 
 ```
 /hakcerline t synthwave
-/hakcerline e wave
+/hakcerline e clean
 /hakcerline status
 /hakcerline-help
+/hakcerline-hack metasploit reverse shell   ← generate a new scene from a prompt
 ```
 
 Changes take effect on the next tick. Config persists in `~/.config/hakcerline/config.json`.
@@ -107,31 +108,55 @@ Changes take effect on the next tick. Config persists in `~/.config/hakcerline/c
 
 ## themes
 
-7 gradient palettes, ported from the [terminaltexteffects](https://pypi.org/project/terminaltexteffects/) spec:
+13 gradient palettes. 7 vivid, 6 muted:
 
 | theme | vibe |
 |---|---|
-| `random` | cycles through all palettes (default) |
-| `cyan_blue` | cold recon · bright cyan to deep blue |
-| `purple_pink` | synthwave · purple to hot pink |
-| `green_cyan` | matrix · forest to cyan |
-| `fire` | red → orange → yellow → white |
+| `random` | cycles through all (default) |
+| `cyan_blue` | cold recon, bright cyan to deep blue |
+| `purple_pink` | synthwave, purple to hot pink |
+| `green_cyan` | matrix, forest to cyan |
+| `fire` | red to orange to yellow to white |
 | `ocean` | deep navy to bright cyan |
-| `synthwave` | pink → purple → blue → purple → pink |
-| `matrix` | green → yellow → green |
+| `synthwave` | pink to purple to blue to purple |
+| `matrix` | green to yellow to green |
+| `mono` | clean grayscale, white to gray |
+| `ember` | dark muted reds, burnt orange |
+| `frost` | pale icy blues and whites |
+| `steel` | cool grays, barely-there blue tint |
+| `amber` | warm gold and honey tones |
+| `dusk` | muted purple-blue twilight |
 
 ## effects
 
-5 per-character color animations, applied to the scene row:
+10 per-character color effects:
 
 | effect | what it does |
 |---|---|
+| `glow` | bold brightened gradient (default) |
+| `clean` | static palette gradient, zero animation |
+| `solid` | single color from palette midpoint |
 | `wave` | gradient scrolls across the line |
 | `rain` | random bright flashes over dim base |
 | `decrypt` | characters reveal progressively from scrambled |
 | `sparkle` | random highlights shimmer over shifting gradient |
 | `beams` | light beam sweeps left to right |
-| `auto` | cycles effect per scene (default) |
+| `nfo` | ANSI art chars get color, regular text stays gray |
+| `hack` | ANSI art chars decrypt-scramble, text stays muted |
+| `auto` | cycles effect per scene |
+
+### effect tester
+
+Preview all effects side by side:
+
+```bash
+hakcerline test               # static snapshot, all effects x all palettes
+hakcerline test frost          # static, frost palette only
+hakcerline test live           # animated with scrolling wave sample
+hakcerline test live synthwave # animated, specific palette
+```
+
+The test mode uses tiled oscilloscope waves (`▁▂▃▄▅▆▇█▇▆▅▄▃▂▁`) that scroll smoothly so you can see exactly how each effect renders in motion.
 
 ---
 
@@ -139,77 +164,55 @@ Changes take effect on the next tick. Config persists in `~/.config/hakcerline/c
 
 | pack | count | what's in it |
 |---|---|---|
-| `core` | 7 | matrix_rain · wargames · nmap_sweep · bbs_login · packet_race · jp_fence · hacker_typer |
-| `infosec` | 10 | traceroute · wardialer · sine_scroller · irc_channel · hexdump · ssh_brute · dns_exfil · enigma · defcon_level · metasploit |
-| `oldschool` | 10 | blue_box · warez_nfo · l0phtcrack · morris_worm · cdc_bo · phrack · red_box · sub7 · manifesto · mitnick |
-| `aol` | 10 | aohell · aol_chatroom · lord · tradewars · mud_session · icq · aim · napster · mirc_xdcc · winnuke |
-| `seckc` | 10 | meetup_night · schedule · cyberraid0 · badge_pirates · seckcoin · discord · venue_history · talks · rexkc · stitches |
+| `core` | 7 | matrix_rain, wargames, nmap_sweep, bbs_login, packet_race, jp_fence, hacker_typer |
+| `infosec` | 10 | traceroute, wardialer, sine_scroller, irc_channel, hexdump, ssh_brute, dns_exfil, enigma, defcon_level, metasploit |
+| `oldschool` | 10 | blue_box, warez_nfo, l0phtcrack, morris_worm, cdc_bo, phrack, red_box, sub7, manifesto, mitnick |
+| `aol` | 10 | aohell, aol_chatroom, lord, tradewars, mud_session, icq, aim, napster, mirc_xdcc, winnuke |
+| `seckc` | 10 | meetup_night, schedule, cyberraid0, badge_pirates, seckcoin, discord, venue_history, talks, rexkc, stitches |
 
 ---
 
-## testimonials (totally real)
+## creating custom scenes
 
-> "Finally a statusline that understands me. I pressed Enter and a blue box played a 2600Hz tone. My phreak ancestors wept."
-> — `anon`, somewhere with a payphone
+### from a prompt (Claude Code)
 
-> "The DEFCON scene cycled to DEFCON 1 during a prod incident. Spooky. Shipped the fix anyway."
-> — SRE, regrets nothing
+With the `/hakcerline-hack` slash command, describe what you want and Claude generates the scene:
 
-> "My intern thought `hakcerline` was an exploit kit. I let them think that."
-> — red team lead
-
-> "Works on my BBS."
-> — sysop, WWIV user
-
----
-
-## config
-
-`~/.config/hakcerline/config.json`:
-
-```json
-{
-  "packs": ["all"],
-  "duration": 30,
-  "theme": "random",
-  "effect": null,
-  "paused": false,
-  "customScenesDir": "~/.config/hakcerline/scenes",
-  "exclude": [],
-  "only": null
-}
+```
+/hakcerline-hack wireshark packet capture with DNS queries
+/hakcerline-hack kubernetes pod status dashboard
+/hakcerline-hack retro BBS door game
 ```
 
-| field | default | what it does |
-|---|---|---|
-| `packs` | `["all"]` | `core`, `infosec`, `oldschool`, `aol`, `seckc`, `all` |
-| `duration` | `30` | seconds per scene before cycling |
-| `theme` | `random` | color palette: `random`, `cyan_blue`, `purple_pink`, `green_cyan`, `fire`, `ocean`, `synthwave`, `matrix` |
-| `effect` | `null` | lock effect: `wave`, `rain`, `decrypt`, `sparkle`, `beams`, or `null` for auto |
-| `paused` | `false` | freeze the scene row |
-| `customScenesDir` | `null` | extra directory with your own scene JSONs |
-| `exclude` | `[]` | scene IDs to skip |
-| `only` | `null` | if set, only run these scene IDs |
+The scene gets saved to your custom scenes directory and joins the rotation immediately.
 
----
-
-## custom scenes
+### by hand
 
 Drop JSON files in `~/.config/hakcerline/scenes/`. They join rotation automatically.
 
 ```json
 {
-  "id": "custom_my_corp",
-  "name": "My Corp",
+  "id": "my_scene",
+  "name": "My Scene",
   "pack": "custom",
   "frames": [
-    " ACME Corp | Jenkins: 47 passing | Prod: healthy | On-call: nobody (good luck)",
-    " ACME Corp | Jenkins: 46 passing 1 FAILING | Prod: DEGRADED | On-call: you (lol)"
+    " ACME Corp ▸ Jenkins: 47 passing  Prod: healthy  On-call: nobody ── ◐              ",
+    " ACME Corp ▸ Jenkins: 47 passing  Prod: healthy  On-call: nobody ── ◓              ",
+    " ACME Corp ▸ Jenkins: 46 passing 1 FAILING  Prod: DEGRADED  On-call: you ── ◑      ",
+    " ACME Corp ▸ Jenkins: 46 passing 1 FAILING  Prod: DEGRADED  On-call: you ── ◒      "
   ]
 }
 ```
 
-Frames are pre-rendered strings, ~120 chars wide, any length array. Runtime pads/truncates to your terminal width.
+### scene rules
+
+1. **30-60 frames** per scene
+2. **Small changes** between consecutive frames: spinner tick (`◐◓◑◒`), counter increment, cursor blink, new data point
+3. **No scrolling/marquee** — text stays in place, only color animates
+4. **No pipes** `|` `│` as separators. Use `  ` (spaces), ` · ` (dot), ` ▸ ` (arrow), ` ── ` (dash)
+5. **Pad to 120 chars** with trailing spaces
+6. **Use wave chars** `▁▂▃▄▅▆▇█` for visualizer/meter sections — they look great with color effects
+7. Frames are pre-rendered strings. Runtime pads/truncates to terminal width.
 
 ---
 
@@ -232,40 +235,69 @@ flowchart LR
   OUT --> CC
 ```
 
-### data the info row reads
+The statusline command runs every 1 second (`refreshInterval: 1`). It reads Claude Code's session JSON from stdin, picks a scene frame based on wall clock time, applies a color effect, builds the HUD row, and prints two lines to stdout. Stateless — no background process, no daemon, no sockets.
 
-```mermaid
-flowchart TD
-  subgraph stdin_fields[Claude Code stdin JSON]
-    M[model]
-    C[cost_usd]
-    LA[lines_added]
-    LR[lines_removed]
-    CTX[context_pct]
-    EL[elapsed_ms]
-    CWD[cwd]
-    GIT[git_worktree]
-    RL[5h_rate_limit]
-  end
-  M --> IR[info row]
-  C --> IR
-  LA --> IR
-  LR --> IR
-  CTX --> IR
-  EL --> IR
-  CWD --> IR
-  GIT --> IR
-  RL --> IR
-  IR --> STATUSLINE[hakcerline row 2]
+### animation model
+
+- **Text**: static. Scenes hold their text still. Small updates (spinners, counters) advance ~1 per 2 seconds.
+- **Color**: the gradient effect sweeps across the static text at 1 step per second, matched to Claude Code's 1-second refresh interval.
+- **Scene rotation**: every `duration` seconds (default 30), a new scene and palette position kicks in.
+
+This means the animation is smooth and readable — no jarring frame jumps, no seizure-inducing flicker.
+
+---
+
+## config
+
+`~/.config/hakcerline/config.json`:
+
+```json
+{
+  "packs": ["all"],
+  "duration": 30,
+  "theme": "random",
+  "effect": "glow",
+  "paused": false,
+  "customScenesDir": "~/.config/hakcerline/scenes",
+  "exclude": [],
+  "only": null
+}
 ```
+
+| field | default | what it does |
+|---|---|---|
+| `packs` | `["all"]` | `core`, `infosec`, `oldschool`, `aol`, `seckc`, `all` |
+| `duration` | `30` | seconds per scene before cycling |
+| `theme` | `random` | color palette name or `random` |
+| `effect` | `glow` | effect name or `null` for auto-cycle |
+| `paused` | `false` | freeze the scene row |
+| `customScenesDir` | `null` | extra directory with your own scene JSONs |
+| `exclude` | `[]` | scene IDs to skip |
+| `only` | `null` | if set, only run these scene IDs |
 
 ---
 
 ## prior art & acks
 
 - **[`ccusage`](https://www.npmjs.com/package/ccusage)** — the Claude Code cost/rate tracker. The info row reads the same stdin JSON shape `ccusage` exposes. If you want numbers without scenery, use `ccusage` directly.
-- **[`terminaltexteffects`](https://pypi.org/project/terminaltexteffects/)** — the TTE pip module. The 5 color effects (wave, rain, decrypt, sparkle, beams) and 7 gradient palettes are ported from TTE to pure TypeScript with zero runtime deps.
+- **[`terminaltexteffects`](https://pypi.org/project/terminaltexteffects/)** — the TTE pip module. The color effects and gradient palettes are ported from TTE to pure TypeScript with zero runtime deps.
 - **`hakcer`** — the terminal ASCII bling pip module that inspired this one. Different surface area, same spirit.
+
+---
+
+## testimonials (totally real)
+
+> "Finally a statusline that understands me. I pressed Enter and a blue box played a 2600Hz tone. My phreak ancestors wept."
+> — `anon`, somewhere with a payphone
+
+> "The DEFCON scene cycled to DEFCON 1 during a prod incident. Spooky. Shipped the fix anyway."
+> — SRE, regrets nothing
+
+> "My intern thought `hakcerline` was an exploit kit. I let them think that."
+> — red team lead
+
+> "Works on my BBS."
+> — sysop, WWIV user
 
 ---
 
