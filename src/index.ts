@@ -9,6 +9,12 @@ import {
   sceneLineFor,
   terminalWidth,
   truncateAnsi,
+  fitToWidth,
+  EFFECTS,
+  EFFECT_NAMES,
+  PALETTES,
+  PALETTE_NAMES,
+  batchRender,
   type InfoContext,
 } from './renderer.js';
 import {
@@ -226,6 +232,88 @@ normal mode (called by Claude Code):
 `);
 }
 
+const WAVE = '\u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588\u2587\u2586\u2585\u2584\u2583\u2582\u2581';
+
+function testSample(width: number, frame: number): string {
+  // tile the wave pattern, then rotate by frame offset
+  let tile = '';
+  while (tile.length < width + WAVE.length) tile += WAVE;
+  const offset = frame % WAVE.length;
+  return tile.slice(offset, offset + width);
+}
+
+const LABEL_W = 8;
+
+function cmdTest(paletteName?: string): void {
+  const width = terminalWidth();
+  const frameNum = 0;
+  const sample = testSample(width - LABEL_W, frameNum);
+  const chars = Array.from(sample);
+
+  const palNames = paletteName ? [paletteName] : PALETTE_NAMES;
+
+  console.log(`\x1b[1;38;5;51mhakcerline effect tester\x1b[0m\n`);
+
+  for (const pn of palNames) {
+    const palette = PALETTES[pn];
+    if (!palette) {
+      console.log(`  unknown palette: ${pn}`);
+      continue;
+    }
+    console.log(`\x1b[1;38;5;228m${pn}\x1b[0m`);
+    for (const name of EFFECT_NAMES) {
+      const effect = EFFECTS[name];
+      const specs = effect(chars, palette, frameNum);
+      const rendered = batchRender(specs);
+      const label = `\x1b[38;5;240m${name.padEnd(LABEL_W)}\x1b[0m`;
+      process.stdout.write(label + rendered + '\x1b[0m\n');
+    }
+    console.log('');
+  }
+
+  console.log(`\x1b[38;5;240mhakcerline test live [palette] — animated\x1b[0m`);
+  console.log(`\x1b[38;5;240mpalettes: ${PALETTE_NAMES.join(', ')}\x1b[0m`);
+}
+
+function cmdTestLive(paletteName?: string): void {
+  const width = terminalWidth();
+  const palette = PALETTES[paletteName ?? PALETTE_NAMES[0]];
+  if (!palette) {
+    console.log(`unknown palette: ${paletteName}`);
+    console.log(`available: ${PALETTE_NAMES.join(', ')}`);
+    return;
+  }
+  const pn = paletteName ?? PALETTE_NAMES[0];
+  const numEffects = EFFECT_NAMES.length;
+
+  process.stdout.write('\x1b[?25l');
+  process.stdout.write(`\x1b[1;38;5;51meffect tester\x1b[0m ${pn}  (ctrl+c)\n\n`);
+  for (const name of EFFECT_NAMES) {
+    process.stdout.write(`\x1b[38;5;240m${name.padEnd(LABEL_W)}\x1b[0m\n`);
+  }
+
+  let frameNum = 0;
+  const interval = setInterval(() => {
+    process.stdout.write(`\x1b[${numEffects}A`);
+    const sample = testSample(width - LABEL_W, frameNum);
+    const chars = Array.from(sample);
+    for (const name of EFFECT_NAMES) {
+      const effect = EFFECTS[name];
+      const specs = effect(chars, palette, frameNum);
+      const rendered = batchRender(specs);
+      const label = `\x1b[38;5;240m${name.padEnd(LABEL_W)}\x1b[0m`;
+      process.stdout.write(`\r${label}${rendered}\x1b[0m\x1b[K\n`);
+    }
+    frameNum++;
+  }, 100);
+
+  process.on('SIGINT', () => {
+    clearInterval(interval);
+    process.stdout.write('\x1b[?25h\n');
+    process.exit(0);
+  });
+}
+
 function renderStatusline(): void {
   try {
     const config = loadConfig();
@@ -276,6 +364,10 @@ async function main(): Promise<void> {
     case 'menu':
     case 'preview':
       printMenuStatic(BUNDLED_ROOT, process.argv[3]);
+      return;
+    case 'test':
+      if (process.argv[3] === 'live') cmdTestLive(process.argv[4]);
+      else cmdTest(process.argv[3]);
       return;
     case 'theme':
     case 't':

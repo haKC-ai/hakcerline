@@ -13,6 +13,12 @@ const PALETTES: Record<string, number[]> = {
   ocean:       [17, 18, 19, 20, 21, 27, 33, 39, 45, 51, 50, 49, 48, 47, 46],
   synthwave:   [201, 200, 199, 163, 127, 91, 55, 56, 57, 93, 129, 165, 201],
   matrix:      [22, 28, 34, 40, 46, 82, 118, 154, 190, 226, 190, 154, 118, 82, 46],
+  mono:        [240, 242, 244, 246, 248, 250, 252, 254, 255, 254, 252, 250, 248, 246, 244],
+  ember:       [52, 88, 124, 130, 166, 172, 173, 137, 131, 130, 124, 88, 52],
+  frost:       [253, 252, 189, 153, 117, 81, 117, 153, 189, 252, 253],
+  steel:       [236, 238, 240, 242, 244, 245, 247, 249, 247, 245, 244, 242, 240, 238],
+  amber:       [94, 130, 136, 172, 178, 214, 220, 214, 178, 172, 136, 130, 94],
+  dusk:        [53, 54, 55, 61, 62, 68, 104, 140, 176, 140, 104, 68, 62, 55],
 };
 const PALETTE_NAMES = Object.keys(PALETTES);
 
@@ -49,6 +55,12 @@ function resolvePalette(theme: ThemeName, sceneIdx: number): number[] {
 
 type ColorSpec = { code: string; ch: string };
 type EffectFn = (chars: string[], palette: number[], frameNum: number) => ColorSpec[];
+
+const ANSI_ART_RE = /[░▒▓█▄▀▐▌╔╗╚╝║═┼┤├┬┴─│▁▂▃▄▅▆▇▊▋▌▍▎▏╭╮╯╰┌┐└┘┣┫┳┻╋━┃╸╺╻╹◆◇●○■□▲△▼▽♦♠♣♥☠☎★✦✧◈◐◑◒◓◓]/;
+
+function isAnsiArt(ch: string): boolean {
+  return ANSI_ART_RE.test(ch);
+}
 
 function palIdx(i: number, len: number, palette: number[], offset = 0): number {
   const base = Math.floor((i / len) * palette.length);
@@ -114,26 +126,88 @@ const EFFECTS: Record<string, EffectFn> = {
   glow(chars, palette, frame) {
     return chars.map((ch, i) => {
       if (ch === ' ') return { code: '', ch };
-      const fg = palIdx(i, chars.length, palette, frame);
-      const bg = dimColor(fg);
-      return { code: `1;38;5;${fg};48;5;${bg}`, ch };
+      const fg = brightenColor(palIdx(i, chars.length, palette, frame));
+      return { code: `1;38;5;${fg}`, ch };
+    });
+  },
+
+  clean(chars, palette, _frame) {
+    return chars.map((ch, i) => {
+      if (ch === ' ') return { code: '', ch };
+      const c = palette[Math.floor((i / chars.length) * (palette.length - 1))];
+      return { code: `38;5;${c}`, ch };
+    });
+  },
+
+  solid(chars, palette, _frame) {
+    const c = palette[Math.floor(palette.length / 2)];
+    return chars.map((ch) => {
+      if (ch === ' ') return { code: '', ch };
+      return { code: `38;5;${c}`, ch };
+    });
+  },
+
+  nfo(chars, palette, frame) {
+    const S = '░▒▓█▄▀▐▌╔╗╚╝║═┼┤├┬┴─│';
+    return chars.map((ch, i) => {
+      if (ch === ' ') return { code: '', ch };
+      if (isAnsiArt(ch)) {
+        // ANSI art chars get full color + slow shift
+        const fg = palIdx(i, chars.length, palette, Math.floor(frame / 4));
+        return { code: `1;38;5;${fg}`, ch };
+      }
+      // regular text stays dim gray
+      return { code: '38;5;245', ch };
+    });
+  },
+
+  hack(chars, palette, frame) {
+    const S = '!@#$%^&*0123456789ABCDEF';
+    return chars.map((ch, i) => {
+      if (ch === ' ') return { code: '', ch };
+      if (isAnsiArt(ch)) {
+        // art chars: decrypt-style scramble then settle
+        const settle = 20 + (i % 30);
+        if (frame < settle) {
+          const scrambled = S[((i * 17 + frame * 7) >>> 0) % S.length];
+          const c = palette[Math.floor(Math.random() * palette.length)];
+          return { code: `38;5;${c}`, ch: scrambled };
+        }
+        const fg = palIdx(i, chars.length, palette, 0);
+        return { code: `1;38;5;${fg}`, ch };
+      }
+      // text: stays static, muted
+      return { code: '2;38;5;250', ch };
     });
   },
 };
 
-function dimColor(c: number): number {
+function brightenColor(c: number): number {
   if (c >= 16 && c <= 231) {
     const idx = c - 16;
     const r = Math.floor(idx / 36);
     const g = Math.floor((idx % 36) / 6);
     const b = idx % 6;
-    return Math.max(0, r - 3) * 36 + Math.max(0, g - 3) * 6 + Math.max(0, b - 3) + 16;
+    return Math.min(5, r + 1) * 36 + Math.min(5, g + 1) * 6 + Math.min(5, b + 1) + 16;
   }
-  if (c >= 232 && c <= 255) return Math.max(232, c - 8);
+  if (c >= 232 && c <= 255) return Math.min(255, c + 4);
+  return 231;
+}
+
+function dimColor(c: number, levels = 2): number {
+  if (c >= 16 && c <= 231) {
+    const idx = c - 16;
+    const r = Math.floor(idx / 36);
+    const g = Math.floor((idx % 36) / 6);
+    const b = idx % 6;
+    return Math.max(0, r - levels) * 36 + Math.max(0, g - levels) * 6 + Math.max(0, b - levels) + 16;
+  }
+  if (c >= 232 && c <= 255) return Math.max(232, c - levels * 2);
   return 232;
 }
 
 const EFFECT_NAMES = Object.keys(EFFECTS);
+export { EFFECTS, EFFECT_NAMES, PALETTES, PALETTE_NAMES, batchRender, brightenColor };
 
 function batchRender(specs: ColorSpec[]): string {
   let out = '';
@@ -198,7 +272,8 @@ const S = `\x1b[38;5;240m \u2733 \x1b[0m`; // ✳ separator
 // Representative color per theme — used for the [t] label
 const THEME_ACCENT: Record<string, number> = {
   cyan_blue: 51, purple_pink: 201, green_cyan: 46, fire: 208,
-  ocean: 39, synthwave: 165, matrix: 46, random: 51,
+  ocean: 39, synthwave: 165, matrix: 46, mono: 250, ember: 166,
+  frost: 153, steel: 245, amber: 214, dusk: 140, random: 51,
 };
 
 function themeColor(name: string): number {
@@ -255,7 +330,9 @@ export function buildInfoRowStyled(input: ClaudeInput, ctx?: InfoContext): strin
   return left + S + rparts.join(S);
 }
 
-export function getSceneAndFrame(numScenes: number, duration: number, totalFrames = 400): [number, number] {
+export function getSceneAndFrame(numScenes: number, duration: number): [number, number] {
+  // totalFrames = duration so frameNum advances ~1 per second (matches refreshInterval: 1)
+  const totalFrames = duration;
   const now = Date.now() / 1000;
   const sceneIdx = Math.floor(now / duration) % numScenes;
   const sceneStart = Math.floor(now / duration) * duration;
@@ -320,7 +397,9 @@ export function buildPromptRow(input: ClaudeInput): string {
 }
 
 export function sceneLineFor(frames: string[], frameNum: number, width: number, theme: ThemeName, sceneIdx: number, forcedEffect?: string | null): string {
-  const frame = frames[frameNum % frames.length];
+  // Text updates slowly (~1 change per 2s), color animates fast
+  const textFrame = Math.floor(frameNum / 12) % frames.length;
+  const frame = frames[textFrame];
   const fitted = fitToWidth(frame, width);
   return colorizeScene(fitted, theme, sceneIdx, frameNum, forcedEffect);
 }

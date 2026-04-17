@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: Config = {
   only: null,
 };
 
-const VALID_THEMES: ThemeName[] = ['cyan_blue', 'purple_pink', 'green_cyan', 'fire', 'ocean', 'synthwave', 'matrix', 'random'];
+const VALID_THEMES: ThemeName[] = ['cyan_blue', 'purple_pink', 'green_cyan', 'fire', 'ocean', 'synthwave', 'matrix', 'mono', 'ember', 'frost', 'steel', 'amber', 'dusk', 'random'];
 
 function expandHome(p: string): string {
   if (p.startsWith('~')) return join(homedir(), p.slice(1));
@@ -101,7 +101,7 @@ export function resolveBundledScenesDir(fromFile: string): string {
 }
 
 export const VALID_THEME_LIST = VALID_THEMES;
-export const EFFECT_LIST = ['wave', 'rain', 'decrypt', 'sparkle', 'beams', 'glow'];
+export const EFFECT_LIST = ['wave', 'rain', 'decrypt', 'sparkle', 'beams', 'glow', 'nfo', 'hack', 'clean', 'solid'];
 
 function configPath(): string {
   return join(homedir(), '.config', 'hakcerline', 'config.json');
