@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, appendFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { loadConfig, loadScenes, resolveBundledScenesDir, setConfigKey, VALID_THEME_LIST, EFFECT_LIST } from './config.js';
@@ -226,14 +226,6 @@ normal mode (called by Claude Code):
 `);
 }
 
-const DEBUG_LOG = '/tmp/hakcerline-debug.log';
-
-function debugLog(msg: string): void {
-  try {
-    appendFileSync(DEBUG_LOG, `${new Date().toISOString()} ${msg}\n`);
-  } catch {}
-}
-
 function renderStatusline(): void {
   try {
     const config = loadConfig();
@@ -251,9 +243,7 @@ function renderStatusline(): void {
 
     if (config.paused || scenes.length === 0) {
       sceneLine = ''.padEnd(width);
-      debugLog(`PAUSED/EMPTY paused=${config.paused} scenes=${scenes.length}`);
     } else {
-      const rawFrame = scenes[idx].frames[frameNum % scenes[idx].frames.length];
       sceneLine = sceneLineFor(scenes[idx].frames, frameNum, width, config.theme, idx, config.effect);
       const activeEffect = config.effect ?? EFFECT_LIST[idx % EFFECT_LIST.length];
       infoCtx = {
@@ -261,15 +251,12 @@ function renderStatusline(): void {
         effectName: activeEffect,
         themeName: config.theme,
       };
-      debugLog(`RENDER idx=${idx}/${scenes.length} frame=${frameNum} scene="${scenes[idx].name}" effect=${activeEffect} theme=${config.theme} raw="${rawFrame.substring(0, 60)}"`);
     }
 
     const infoLine = truncateAnsi(buildInfoRowStyled(input, infoCtx), width);
 
     process.stdout.write(sceneLine + '\n' + infoLine);
-    debugLog(`STDIN len=${rawStdin.length} width=${width}`);
-  } catch (e) {
-    debugLog(`ERROR ${(e as Error).message}`);
+  } catch {
     process.stdout.write('\n');
   }
 }

@@ -7,7 +7,7 @@ const DEFAULT_CONFIG: Config = {
   packs: ['all'],
   duration: 30,
   theme: 'random',
-  effect: null,
+  effect: 'glow',
   paused: false,
   customScenesDir: null,
   exclude: [],
@@ -101,7 +101,7 @@ export function resolveBundledScenesDir(fromFile: string): string {
 }
 
 export const VALID_THEME_LIST = VALID_THEMES;
-export const EFFECT_LIST = ['wave', 'rain', 'decrypt', 'sparkle', 'beams'];
+export const EFFECT_LIST = ['wave', 'rain', 'decrypt', 'sparkle', 'beams', 'glow'];
 
 function configPath(): string {
   return join(homedir(), '.config', 'hakcerline', 'config.json');

@@ -110,7 +110,28 @@ const EFFECTS: Record<string, EffectFn> = {
       return { code: `2;38;5;${palette[Math.floor((i / chars.length) * (palette.length - 1))]}`, ch };
     });
   },
+
+  glow(chars, palette, frame) {
+    return chars.map((ch, i) => {
+      if (ch === ' ') return { code: '', ch };
+      const fg = palIdx(i, chars.length, palette, frame);
+      const bg = dimColor(fg);
+      return { code: `1;38;5;${fg};48;5;${bg}`, ch };
+    });
+  },
 };
+
+function dimColor(c: number): number {
+  if (c >= 16 && c <= 231) {
+    const idx = c - 16;
+    const r = Math.floor(idx / 36);
+    const g = Math.floor((idx % 36) / 6);
+    const b = idx % 6;
+    return Math.max(0, r - 3) * 36 + Math.max(0, g - 3) * 6 + Math.max(0, b - 3) + 16;
+  }
+  if (c >= 232 && c <= 255) return Math.max(232, c - 8);
+  return 232;
+}
 
 const EFFECT_NAMES = Object.keys(EFFECTS);
 

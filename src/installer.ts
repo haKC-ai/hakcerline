@@ -199,14 +199,6 @@ function randomScrambleChar(): string {
 
 const SCRAMBLE_COLOR = 51;
 
-function isSkullCharInGrid(grid: DecryptCell[][], rowIdx: number, colIdx: number): boolean {
-  const lines = grid.map((r) => r.map((c) => c.target).join(''));
-  const skullLines = findSkullLines(lines);
-  if (!skullLines.has(rowIdx)) return false;
-  const ranges = findSkullRangesInLine(lines[rowIdx], true);
-  return ranges.some(([start, end]) => colIdx >= start && colIdx < end);
-}
-
 function renderDecryptFrame(grid: DecryptCell[][], tick: number, palette: number[]): string {
   const lines = grid.map((r) => r.map((c) => c.target).join(''));
   const skullLines = findSkullLines(lines);
@@ -514,7 +506,7 @@ export function writeClaudeSettings(indexFile: string): string {
   settings.statusLine = {
     type: 'command',
     command: resolveStatuslineCommand(indexFile),
-    padding: 0,
+    padding: 1,
     refreshInterval: 1,
   };
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
