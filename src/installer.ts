@@ -41,7 +41,7 @@ const CHOICES: PackChoice[] = [
   { id: 'custom', packValue: 'custom', label: 'custom', detail: 'load from ~/.config/hakcerline/scenes/',      count: '?' },
 ];
 
-const THEMES: ThemeName[] = ['matrix', 'amber', 'green', 'ice', 'kali', 'seckc'];
+const THEMES: ThemeName[] = ['random', 'cyan_blue', 'purple_pink', 'green_cyan', 'fire', 'ocean', 'synthwave', 'matrix'];
 
 interface InstallerResult {
   packs: string[];
@@ -217,17 +217,19 @@ function renderMenu(state: State): string {
 }
 
 function themeSwatches(current: ThemeName): string {
-  const themeColor: Record<ThemeName, string> = {
+  const themeColor: Record<string, string> = {
+    random: C.orange,
+    cyan_blue: C.ice,
+    purple_pink: C.kali,
+    green_cyan: C.green,
+    fire: C.red,
+    ocean: C.ice,
+    synthwave: C.kali,
     matrix: C.green,
-    amber: C.amber,
-    green: `${ESC}38;5;48m`,
-    ice: C.ice,
-    kali: C.kali,
-    seckc: C.seckc,
   };
   return THEMES.map((t) => {
-    const marker = t === current ? `${themeColor[t]}${BOLD}[${t}]${RESET}` : `${DIM}${t}${RESET}`;
-    return marker;
+    const c = themeColor[t] ?? C.gray;
+    return t === current ? `${c}${BOLD}[${t}]${RESET}` : `${DIM}${t}${RESET}`;
   }).join(' ');
 }
 
@@ -277,14 +279,14 @@ export async function runInstaller(bundledRoot: string): Promise<InstallerResult
   const state: State = {
     cursor: 0,
     selected: new Set<string>(),
-    theme: 'matrix',
+    theme: 'random',
     duration: 30,
     durationPrompt: false,
     durationBuffer: '',
   };
 
   if (!isTTY) {
-    return { packs: ['all'], theme: 'matrix', duration: 30, confirmed: true };
+    return { packs: ['all'], theme: 'random', duration: 30, confirmed: true };
   }
 
   const bannerLines = readBanner(bundledRoot);
@@ -482,7 +484,7 @@ export function printMenuStatic(bundledRoot: string, paletteName?: string): void
   const state: State = {
     cursor: 0,
     selected: new Set<string>(),
-    theme: 'matrix',
+    theme: 'random',
     duration: 30,
     durationPrompt: false,
     durationBuffer: '',

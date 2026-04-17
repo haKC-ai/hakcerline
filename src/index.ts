@@ -158,7 +158,7 @@ function renderStatusline(): void {
     sceneLine = ''.padEnd(width);
   } else {
     const [idx, frameNum] = getSceneAndFrame(scenes.length, config.duration);
-    sceneLine = sceneLineFor(scenes[idx].frames, frameNum, width, config.theme);
+    sceneLine = sceneLineFor(scenes[idx].frames, frameNum, width, config.theme, idx);
   }
 
   const infoLine = buildInfoRow(input);

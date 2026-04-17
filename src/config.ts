@@ -6,13 +6,13 @@ import type { Config, Scene, ThemeName } from './types.js';
 const DEFAULT_CONFIG: Config = {
   packs: ['all'],
   duration: 30,
-  theme: 'matrix',
+  theme: 'random',
   customScenesDir: null,
   exclude: [],
   only: null,
 };
 
-const VALID_THEMES: ThemeName[] = ['matrix', 'amber', 'green', 'ice', 'kali', 'seckc'];
+const VALID_THEMES: ThemeName[] = ['cyan_blue', 'purple_pink', 'green_cyan', 'fire', 'ocean', 'synthwave', 'matrix', 'random'];
 
 function expandHome(p: string): string {
   if (p.startsWith('~')) return join(homedir(), p.slice(1));

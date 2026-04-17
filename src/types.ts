@@ -14,7 +14,7 @@ export interface Config {
   only: string[] | null;
 }
 
-export type ThemeName = 'matrix' | 'amber' | 'green' | 'ice' | 'kali' | 'seckc';
+export type ThemeName = 'cyan_blue' | 'purple_pink' | 'green_cyan' | 'fire' | 'ocean' | 'synthwave' | 'matrix' | 'random';
 
 export interface ClaudeModel {
   id?: string;

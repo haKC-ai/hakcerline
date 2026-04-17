@@ -5,14 +5,16 @@ const RESET = '\x1b[0m';
 const DIM = '\x1b[2m';
 const BOLD = '\x1b[1m';
 
-const THEMES: Record<ThemeName, string> = {
-  matrix: '\x1b[38;5;46m',
-  amber: '\x1b[38;5;214m',
-  green: '\x1b[38;5;48m',
-  ice: '\x1b[38;5;39m',
-  kali: '\x1b[38;5;141m',
-  seckc: '\x1b[38;5;208m',
+const PALETTES: Record<string, number[]> = {
+  cyan_blue:   [51, 50, 49, 48, 47, 45, 39, 38, 37, 33, 32, 31, 27, 26, 25],
+  purple_pink: [57, 93, 129, 165, 201, 200, 199, 198, 197, 196, 163, 127, 91, 55],
+  green_cyan:  [22, 28, 34, 40, 46, 47, 48, 49, 50, 51, 45, 39, 33, 27],
+  fire:        [196, 202, 208, 214, 220, 226, 227, 228, 229, 230, 229, 228, 214, 208],
+  ocean:       [17, 18, 19, 20, 21, 27, 33, 39, 45, 51, 50, 49, 48, 47, 46],
+  synthwave:   [201, 200, 199, 163, 127, 91, 55, 56, 57, 93, 129, 165, 201],
+  matrix:      [22, 28, 34, 40, 46, 82, 118, 154, 190, 226, 190, 154, 118, 82, 46],
 };
+const PALETTE_NAMES = Object.keys(PALETTES);
 
 const SEG = {
   model: '\x1b[38;5;141m',
@@ -38,8 +40,25 @@ export function fitToWidth(frame: string, width: number): string {
   return frame + ' '.repeat(width - frame.length);
 }
 
-export function colorizeScene(frame: string, theme: ThemeName): string {
-  return `${THEMES[theme] ?? THEMES.matrix}${frame}${RESET}`;
+function resolvePalette(theme: ThemeName, sceneIdx: number): number[] {
+  if (theme === 'random') {
+    return PALETTES[PALETTE_NAMES[sceneIdx % PALETTE_NAMES.length]];
+  }
+  return PALETTES[theme] ?? PALETTES.matrix;
+}
+
+export function colorizeScene(frame: string, theme: ThemeName, sceneIdx: number): string {
+  const palette = resolvePalette(theme, sceneIdx);
+  const chars = Array.from(frame);
+  const len = chars.length;
+  if (len === 0) return frame;
+  return chars
+    .map((ch, i) => {
+      if (ch === ' ') return ch;
+      const idx = Math.floor((i / len) * (palette.length - 1));
+      return `\x1b[38;5;${palette[idx]}m${ch}${RESET}`;
+    })
+    .join('');
 }
 
 export function getSceneAndFrame(numScenes: number, duration: number, fps = 12.5): [number, number] {
@@ -108,10 +127,10 @@ export function buildPromptRow(input: ClaudeInput): string {
   return `${id}${SEG.cwd}${BOLD}${name}${RESET}${SEG.sep} ▸${RESET}`;
 }
 
-export function sceneLineFor(frames: string[], frameNum: number, width: number, theme: ThemeName): string {
+export function sceneLineFor(frames: string[], frameNum: number, width: number, theme: ThemeName, sceneIdx: number): string {
   const frame = frames[frameNum % frames.length];
   const fitted = fitToWidth(frame, width);
-  return colorizeScene(fitted, theme);
+  return colorizeScene(fitted, theme, sceneIdx);
 }
 
 export function stripAnsiLen(s: string): number {
