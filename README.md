@@ -1,8 +1,8 @@
 ```
  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
  ▓                                                                                                           ▓
- ▓     h a k c e r l i n e   //   animated statusline for Claude Code · v0.1.0 · release: 2026-04-16         ▓
- ▓     47 themed scenes · 5 packs · 0 runtime deps · render in <10ms · state = wall clock                    ▓
+ ▓     h a k c e r l i n e   //   animated statusline for Claude Code · v0.3.0 · release: 2026-04-17         ▓
+ ▓     47 themed scenes · 7 color palettes · 5 TTE effects · live controls · 0 runtime deps                  ▓
  ▓                                                                                                           ▓
  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 ```
@@ -23,44 +23,115 @@
 [![deps](https://img.shields.io/badge/runtime%20deps-0-46)](package.json)
 [![SecKC](https://img.shields.io/badge/GREETZ-SecKC-ff6b35)](https://seckc.org)
 
-Three-row animated statusline for **Claude Code**. Top row cycles through themed scenes — Matrix rain, WarGames, BBS login prompts, `nmap` sweeps, AOHell, DEFCON levels, Sub7, SecKC meetup nights. Middle row is your session metadata. Bottom row is the prompt.
+Two-row animated statusline for **Claude Code**. Top row cycles through 47 themed scenes — hexdumps, WarGames, BBS login prompts, `nmap` sweeps, AOHell, DEFCON levels, Sub7, ICQ, SecKC meetup nights — each with per-character TTE color effects. Bottom row is your session HUD: model, cost, context window, elapsed time, code delta, rate limits, and live controls.
 
-Pre-rendered. Stateless. Reads stdin, prints three lines, exits.
+```
+ 0xdead1050  69 16 45 b1 8e ed ec 34  48 e7 f0 f0 0b a5 52 fb  |i.E....4H.....R.|
+  8% ✳  11m16s ✳ Opus 4.6 ✳ █░░░░░░░ 16% ✳ $0.19 ✳  personal/hakcerline ✳ +0/-0 ✳ [e]Hexdump [t]wave /hakcerline
+```
+
+Pre-rendered. Stateless. Reads stdin, prints two lines, exits.
 
 ---
 
 ## install
 
 ```bash
-npx hakcerline install
+npm install -g hakcerline
+hakcerline install
 ```
 
-No step 2.
-
-This writes the `statusLine` block to your `~/.claude/settings.json`. Restart Claude Code and watch the top of the terminal start moving.
+This writes the `statusLine` block to `~/.claude/settings.json`. Restart Claude Code and the top of the terminal starts moving.
 
 Remove it:
 ```bash
-npx hakcerline uninstall
-```
-Removes the `statusLine` block from `~/.claude/settings.json`, then prompts before nuking `~/.config/hakcerline/` (config + custom scenes).
-
-Inspect the scene library:
-```bash
-npx hakcerline list
+hakcerline uninstall
 ```
 
 ---
 
 ## what you get
 
-**Row 1** — animated scene, themed color, cycles every 30s (configurable)
+**Row 1** — animated scene with per-character color effects (wave, rain, decrypt, sparkle, beams), cycling through 7 gradient palettes
 
-**Row 2** — `model │ $cost │ context bar % │ elapsed │ cwd │ worktree │ 5h rate%`
+**Row 2** — session HUD:
 
-**Row 3** — session name or `hakcerline`
+```
+  2% ✳  7m30s ✳ Opus 4.6 ✳ ███░░░░░ 38% ✳ $2.47 ✳  personal/myproj ✳ +186/-42 ✳ [e]Hexdump [t]sparkle /hakcerline
+```
 
-Every render: read stdin, derive frame from `Date.now()`, print, exit. No daemon. No background process. No npm deps at runtime.
+| segment | glyph | what | color |
+|---|---|---|---|
+| rate limit |  | 5h usage % | cyan → amber → red |
+| elapsed |  | session time | dark cyan |
+| model | | model name | bright cyan bold |
+| context | █░ | token window usage | blue → amber → red |
+| cost |  | session cost | teal |
+| cwd |  | working dir (last 2 segments) | aqua |
+| lines | +/- | code added/removed | green / red |
+| scene | [e] | current scene name | pink |
+| effect | [t] | current color effect | themed |
+| help | | slash command hint | dim |
+
+Context bar and rate limit shift from cool to warm as they fill — you'll notice when things get hot.
+
+---
+
+## live controls
+
+Change theme, effect, or pause animation without leaving Claude Code:
+
+```bash
+hakcerline theme fire          # or: hakcerline t fire
+hakcerline effect sparkle      # or: hakcerline e sparkle
+hakcerline pause               # or: hakcerline p
+hakcerline hide                # or: hakcerline h
+hakcerline status              # show current config
+hakcerline duration 60         # scene rotation speed
+```
+
+### Claude Code slash commands
+
+Type these right in the Claude Code prompt:
+
+```
+/hakcerline t synthwave
+/hakcerline e wave
+/hakcerline status
+/hakcerline-help
+```
+
+Changes take effect on the next tick. Config persists in `~/.config/hakcerline/config.json`.
+
+---
+
+## themes
+
+7 gradient palettes, ported from the [terminaltexteffects](https://pypi.org/project/terminaltexteffects/) spec:
+
+| theme | vibe |
+|---|---|
+| `random` | cycles through all palettes (default) |
+| `cyan_blue` | cold recon · bright cyan to deep blue |
+| `purple_pink` | synthwave · purple to hot pink |
+| `green_cyan` | matrix · forest to cyan |
+| `fire` | red → orange → yellow → white |
+| `ocean` | deep navy to bright cyan |
+| `synthwave` | pink → purple → blue → purple → pink |
+| `matrix` | green → yellow → green |
+
+## effects
+
+5 per-character color animations, applied to the scene row:
+
+| effect | what it does |
+|---|---|
+| `wave` | gradient scrolls across the line |
+| `rain` | random bright flashes over dim base |
+| `decrypt` | characters reveal progressively from scrambled |
+| `sparkle` | random highlights shimmer over shifting gradient |
+| `beams` | light beam sweeps left to right |
+| `auto` | cycles effect per scene (default) |
 
 ---
 
@@ -94,13 +165,15 @@ Every render: read stdin, derive frame from `Date.now()`, print, exit. No daemon
 
 ## config
 
-Optional. `~/.config/hakcerline/config.json`:
+`~/.config/hakcerline/config.json`:
 
 ```json
 {
   "packs": ["all"],
   "duration": 30,
-  "theme": "matrix",
+  "theme": "random",
+  "effect": null,
+  "paused": false,
   "customScenesDir": "~/.config/hakcerline/scenes",
   "exclude": [],
   "only": null
@@ -111,21 +184,12 @@ Optional. `~/.config/hakcerline/config.json`:
 |---|---|---|
 | `packs` | `["all"]` | `core`, `infosec`, `oldschool`, `aol`, `seckc`, `all` |
 | `duration` | `30` | seconds per scene before cycling |
-| `theme` | `matrix` | row 1 color: `matrix`, `amber`, `green`, `ice`, `kali`, `seckc` |
+| `theme` | `random` | color palette: `random`, `cyan_blue`, `purple_pink`, `green_cyan`, `fire`, `ocean`, `synthwave`, `matrix` |
+| `effect` | `null` | lock effect: `wave`, `rain`, `decrypt`, `sparkle`, `beams`, or `null` for auto |
+| `paused` | `false` | freeze the scene row |
 | `customScenesDir` | `null` | extra directory with your own scene JSONs |
 | `exclude` | `[]` | scene IDs to skip |
 | `only` | `null` | if set, only run these scene IDs |
-
-### themes
-
-| theme | color | vibe |
-|---|---|---|
-| `matrix` | `#00ff41` | default · green terminal |
-| `amber` | `#ffb000` | CRT phosphor |
-| `green` | `#33ff33` | P1 phosphor |
-| `ice` | `#00bcd4` | cold blue recon |
-| `kali` | `#bb9af7` | purple · offensive |
-| `seckc` | `#ff6b35` | SecKC orange |
 
 ---
 
@@ -145,58 +209,48 @@ Drop JSON files in `~/.config/hakcerline/scenes/`. They join rotation automatica
 }
 ```
 
-Frames are pre-rendered strings, ~120 chars wide, any length array. Runtime pads/truncates to your terminal width. No code changes, no rebuilds.
+Frames are pre-rendered strings, ~120 chars wide, any length array. Runtime pads/truncates to your terminal width.
 
 ---
 
 ## how it works
 
-1. Claude Code calls `hakcerline` every render tick
-2. stdin = session JSON (model, cost, context %, cwd, worktree, rate limits — same shape [`ccusage`](https://www.npmjs.com/package/ccusage) reads)
-3. pick scene + frame from wall clock: `Math.floor(Date.now()/1000/duration) % N`
-4. pick frame index: `Math.floor(elapsed * 12.5)`
-5. pad/truncate to terminal width
-6. colorize, build info row, build prompt row
-7. print three lines, exit
-
-Two invocations 80ms apart read sequential frames. The clock is the state.
-
 ```mermaid
 flowchart LR
   CC[Claude Code] -- session JSON --> STDIN[stdin]
   STDIN --> P[parseInput]
-  P --> CFG[loadConfig\n~/.config/hakcerline]
-  CFG --> SCENES[loadScenes\nbundled + custom]
-  SCENES --> PICK[getSceneAndFrame\nDate.now / duration]
-  PICK --> FRAME[frame string]
-  FRAME --> FIT[fitToWidth\npad/truncate]
-  FIT --> COLOR[theme colorize]
-  COLOR --> R1[row 1 · scene]
-  P --> INFO[buildInfoRow\nmodel · $cost · ctx · elapsed · cwd · git · 5h%]
-  INFO --> R2[row 2 · info]
-  P --> PR[buildPromptRow]
-  PR --> R3[row 3 · prompt]
-  R1 --> OUT[stdout]
+  P --> CFG[loadConfig]
+  CFG --> SCENES[loadScenes]
+  SCENES --> PICK[getSceneAndFrame\nwall clock]
+  PICK --> FIT[fitToWidth]
+  FIT --> FX[colorizeScene\neffect + palette]
+  FX --> R1[row 1 · scene]
+  P --> INFO[buildInfoRowStyled\nrate · elapsed · model\nctx bar · cost · cwd\nlines · scene · effect]
+  INFO --> R2[row 2 · HUD]
+  R1 --> OUT[stdout 2 lines]
   R2 --> OUT
-  R3 --> OUT
   OUT --> CC
 ```
 
-### data the info row borrows
+### data the info row reads
 
 ```mermaid
 flowchart TD
-  subgraph ccusage_fields[ccusage-style fields]
+  subgraph stdin_fields[Claude Code stdin JSON]
     M[model]
     C[cost_usd]
+    LA[lines_added]
+    LR[lines_removed]
     CTX[context_pct]
-    EL[elapsed_sec]
+    EL[elapsed_ms]
     CWD[cwd]
     GIT[git_worktree]
     RL[5h_rate_limit]
   end
   M --> IR[info row]
   C --> IR
+  LA --> IR
+  LR --> IR
   CTX --> IR
   EL --> IR
   CWD --> IR
@@ -205,31 +259,12 @@ flowchart TD
   IR --> STATUSLINE[hakcerline row 2]
 ```
 
-### install/uninstall flow
-
-```mermaid
-stateDiagram-v2
-  [*] --> install: npx hakcerline install
-  install --> TUI: runInstaller banner + menu
-  TUI --> write_cfg: enter
-  write_cfg --> write_settings: ~/.claude/settings.json
-  write_settings --> active: restart Claude Code
-  active --> [*]
-  active --> uninstall: npx hakcerline uninstall
-  uninstall --> remove_statusline: delete statusLine key
-  remove_statusline --> nuke_prompt: prompt y/N
-  nuke_prompt --> wipe: y — rm -rf ~/.config/hakcerline
-  nuke_prompt --> keep: N — leave config
-  wipe --> [*]
-  keep --> [*]
-```
-
 ---
 
 ## prior art & acks
 
-- **[`ccusage`](https://www.npmjs.com/package/ccusage)** — the Claude Code cost/rate tracker. The info row reads the same stdin JSON shape `ccusage` exposes (model, cost, context %, elapsed, worktree, 5h rate). If you want numbers without scenery, use `ccusage` directly.
-- **[`terminaltexteffects`](https://pypi.org/project/terminaltexteffects/)** — the TTE pip module powering the installer's decrypt intro. The `beams` effect applied to the hakcerline banner is the repo cover art at [`assets/animated/haKCerline_beams.gif`](assets/animated/haKCerline_beams.gif).
+- **[`ccusage`](https://www.npmjs.com/package/ccusage)** — the Claude Code cost/rate tracker. The info row reads the same stdin JSON shape `ccusage` exposes. If you want numbers without scenery, use `ccusage` directly.
+- **[`terminaltexteffects`](https://pypi.org/project/terminaltexteffects/)** — the TTE pip module. The 5 color effects (wave, rain, decrypt, sparkle, beams) and 7 gradient palettes are ported from TTE to pure TypeScript with zero runtime deps.
 - **`hakcer`** — the terminal ASCII bling pip module that inspired this one. Different surface area, same spirit.
 
 ---
