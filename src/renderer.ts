@@ -314,6 +314,28 @@ export function padVisible(s: string, width: number): string {
   return s + ' '.repeat(width - len);
 }
 
+export function truncateAnsi(s: string, maxWidth: number): string {
+  let visible = 0;
+  let i = 0;
+  let result = '';
+  while (i < s.length) {
+    if (s[i] === '\x1b') {
+      const end = s.indexOf('m', i);
+      if (end !== -1) {
+        result += s.slice(i, end + 1);
+        i = end + 1;
+        continue;
+      }
+    }
+    if (visible >= maxWidth) break;
+    result += s[i];
+    visible++;
+    i++;
+  }
+  if (visible >= maxWidth) result += '\x1b[0m';
+  return result;
+}
+
 export function shortCwd(input: ClaudeInput): string {
   return basename(input.workspace?.current_dir ?? '') || 'hakcerline';
 }

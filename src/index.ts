@@ -8,6 +8,7 @@ import {
   getSceneAndFrame,
   sceneLineFor,
   terminalWidth,
+  truncateAnsi,
   type InfoContext,
 } from './renderer.js';
 import {
@@ -263,7 +264,7 @@ function renderStatusline(): void {
       debugLog(`RENDER idx=${idx}/${scenes.length} frame=${frameNum} scene="${scenes[idx].name}" effect=${activeEffect} theme=${config.theme} raw="${rawFrame.substring(0, 60)}"`);
     }
 
-    const infoLine = buildInfoRowStyled(input, infoCtx);
+    const infoLine = truncateAnsi(buildInfoRowStyled(input, infoCtx), width);
 
     process.stdout.write(sceneLine + '\n' + infoLine + '\n');
     debugLog(`STDIN len=${rawStdin.length} width=${width}`);
