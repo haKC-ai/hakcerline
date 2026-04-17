@@ -47,18 +47,97 @@ function resolvePalette(theme: ThemeName, sceneIdx: number): number[] {
   return PALETTES[theme] ?? PALETTES.matrix;
 }
 
-export function colorizeScene(frame: string, theme: ThemeName, sceneIdx: number): string {
+type EffectFn = (chars: string[], palette: number[], frameNum: number) => string;
+
+const EFFECTS: Record<string, EffectFn> = {
+  wave(chars, palette, frame) {
+    const len = chars.length;
+    return chars
+      .map((ch, i) => {
+        if (ch === ' ') return ch;
+        const idx = ((Math.floor((i / len) * palette.length) + frame) % palette.length + palette.length) % palette.length;
+        return `\x1b[38;5;${palette[idx]}m${ch}${RESET}`;
+      })
+      .join('');
+  },
+
+  rain(chars, palette, frame) {
+    const seed = frame * 7;
+    return chars
+      .map((ch, i) => {
+        if (ch === ' ') return ch;
+        const hash = ((i * 31 + seed) >>> 0) % 100;
+        if (hash < 8) return `\x1b[38;5;255m\x1b[1m${ch}${RESET}`;
+        if (hash < 20) return `\x1b[38;5;${palette[palette.length - 1]}m${ch}${RESET}`;
+        const idx = Math.floor((i / chars.length) * (palette.length - 1));
+        const dim = hash < 40;
+        return `${dim ? '\x1b[2m' : ''}\x1b[38;5;${palette[idx]}m${ch}${RESET}`;
+      })
+      .join('');
+  },
+
+  decrypt(chars, palette, frame) {
+    const progress = Math.min(1, frame / 50);
+    const SCRAMBLE = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`0123456789ABCDEF';
+    return chars
+      .map((ch, i) => {
+        if (ch === ' ') return ch;
+        const threshold = (i / chars.length) * 1.3;
+        if (progress >= threshold) {
+          const idx = Math.floor((i / chars.length) * (palette.length - 1));
+          return `\x1b[38;5;${palette[idx]}m${ch}${RESET}`;
+        }
+        const hash = ((i * 17 + frame * 13) >>> 0) % SCRAMBLE.length;
+        return `\x1b[38;5;51m${SCRAMBLE[hash]}${RESET}`;
+      })
+      .join('');
+  },
+
+  sparkle(chars, palette, frame) {
+    const seed = frame * 11;
+    return chars
+      .map((ch, i) => {
+        if (ch === ' ') return ch;
+        const hash = ((i * 37 + seed) >>> 0) % 100;
+        const idx = ((Math.floor((i / chars.length) * palette.length) + Math.floor(frame / 3)) % palette.length + palette.length) % palette.length;
+        if (hash < 5) return `\x1b[38;5;255m\x1b[1m${ch}${RESET}`;
+        if (hash < 12) return `\x1b[2m\x1b[38;5;${palette[0]}m${ch}${RESET}`;
+        return `\x1b[38;5;${palette[idx]}m${ch}${RESET}`;
+      })
+      .join('');
+  },
+
+  beams(chars, palette, frame) {
+    const beamPos = (frame * 2) % (chars.length + 20) - 10;
+    const beamWidth = 8;
+    return chars
+      .map((ch, i) => {
+        if (ch === ' ') return ch;
+        const dist = Math.abs(i - beamPos);
+        if (dist < beamWidth) {
+          const intensity = 1 - dist / beamWidth;
+          if (intensity > 0.6) return `\x1b[38;5;255m\x1b[1m${ch}${RESET}`;
+          if (intensity > 0.3) return `\x1b[38;5;${palette[palette.length - 1]}m${ch}${RESET}`;
+        }
+        const idx = Math.floor((i / chars.length) * (palette.length - 1));
+        return `\x1b[2m\x1b[38;5;${palette[idx]}m${ch}${RESET}`;
+      })
+      .join('');
+  },
+};
+
+const EFFECT_NAMES = Object.keys(EFFECTS);
+
+function resolveEffect(sceneIdx: number): EffectFn {
+  return EFFECTS[EFFECT_NAMES[sceneIdx % EFFECT_NAMES.length]];
+}
+
+export function colorizeScene(frame: string, theme: ThemeName, sceneIdx: number, frameNum: number): string {
   const palette = resolvePalette(theme, sceneIdx);
   const chars = Array.from(frame);
-  const len = chars.length;
-  if (len === 0) return frame;
-  return chars
-    .map((ch, i) => {
-      if (ch === ' ') return ch;
-      const idx = Math.floor((i / len) * (palette.length - 1));
-      return `\x1b[38;5;${palette[idx]}m${ch}${RESET}`;
-    })
-    .join('');
+  if (chars.length === 0) return frame;
+  const effect = resolveEffect(sceneIdx);
+  return effect(chars, palette, frameNum);
 }
 
 export function getSceneAndFrame(numScenes: number, duration: number, fps = 12.5): [number, number] {
@@ -130,7 +209,7 @@ export function buildPromptRow(input: ClaudeInput): string {
 export function sceneLineFor(frames: string[], frameNum: number, width: number, theme: ThemeName, sceneIdx: number): string {
   const frame = frames[frameNum % frames.length];
   const fitted = fitToWidth(frame, width);
-  return colorizeScene(fitted, theme, sceneIdx);
+  return colorizeScene(fitted, theme, sceneIdx, frameNum);
 }
 
 export function stripAnsiLen(s: string): number {
