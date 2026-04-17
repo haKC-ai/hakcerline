@@ -202,8 +202,7 @@ export function buildInfoRow(input: ClaudeInput): string {
 
 export function buildPromptRow(input: ClaudeInput): string {
   const name = input.session_name?.trim() || 'hakcerline';
-  const id = input.session_id ? `${DIM}[${input.session_id.slice(0, 8)}]${RESET} ` : '';
-  return `${id}${SEG.cwd}${BOLD}${name}${RESET}${SEG.sep} ▸${RESET}`;
+  return `${SEG.cwd}${BOLD}${name}${RESET}${SEG.sep} ▸${RESET}`;
 }
 
 export function sceneLineFor(frames: string[], frameNum: number, width: number, theme: ThemeName, sceneIdx: number): string {

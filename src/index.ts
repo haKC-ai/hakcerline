@@ -148,23 +148,27 @@ normal mode (called by Claude Code):
 }
 
 function renderStatusline(): void {
-  const config = loadConfig();
-  const scenes = loadScenes(config, BUNDLED_SCENES);
-  const input = parseInput(readStdinSync());
-  const width = terminalWidth();
+  try {
+    const config = loadConfig();
+    const scenes = loadScenes(config, BUNDLED_SCENES);
+    const input = parseInput(readStdinSync());
+    const width = terminalWidth();
 
-  let sceneLine: string;
-  if (scenes.length === 0) {
-    sceneLine = ''.padEnd(width);
-  } else {
-    const [idx, frameNum] = getSceneAndFrame(scenes.length, config.duration);
-    sceneLine = sceneLineFor(scenes[idx].frames, frameNum, width, config.theme, idx);
+    let sceneLine: string;
+    if (scenes.length === 0) {
+      sceneLine = ''.padEnd(width);
+    } else {
+      const [idx, frameNum] = getSceneAndFrame(scenes.length, config.duration);
+      sceneLine = sceneLineFor(scenes[idx].frames, frameNum, width, config.theme, idx);
+    }
+
+    const infoLine = buildInfoRow(input);
+    const promptLine = buildPromptRow(input);
+
+    process.stdout.write(sceneLine + '\n' + infoLine + '\n' + promptLine + '\n');
+  } catch {
+    process.stdout.write('\n\n\n');
   }
-
-  const infoLine = buildInfoRow(input);
-  const promptLine = buildPromptRow(input);
-
-  process.stdout.write(sceneLine + '\n' + infoLine + '\n' + promptLine + '\n');
 }
 
 async function main(): Promise<void> {
