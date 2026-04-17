@@ -515,6 +515,7 @@ export function writeClaudeSettings(indexFile: string): string {
     type: 'command',
     command: resolveStatuslineCommand(indexFile),
     padding: 0,
+    refreshInterval: 1,
   };
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
   return settingsPath;
