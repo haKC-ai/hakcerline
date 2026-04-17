@@ -5,6 +5,7 @@ Commands:
 - `e [name]` or `effect [name]` — get/set effect (wave, rain, decrypt, sparkle, beams, glow, nfo, hack, clean, solid, auto)
 - `p` or `pause` — toggle animation on/off
 - `h` or `hide` — hide/show scene row
+- `play [scene_id]` — lock to a specific scene (`play all` to unlock)
 - `status` — show current config
 - `duration [seconds]` — set scene duration
 - `test` — static effect preview

@@ -208,6 +208,25 @@ function cmdDuration(val?: string): void {
   console.log(`\x1b[38;5;46m✓\x1b[0m duration → ${n}s`);
 }
 
+function cmdPlay(sceneId?: string): void {
+  if (!sceneId || sceneId === 'all' || sceneId === 'reset') {
+    setConfigKey('only', null);
+    console.log(`\x1b[38;5;46m✓\x1b[0m rotation unlocked — all scenes`);
+    return;
+  }
+  const config = loadConfig();
+  const scenes = loadScenes({ ...config, only: null, exclude: [] }, BUNDLED_SCENES);
+  const match = scenes.find(s => s.id === sceneId);
+  if (!match) {
+    console.log(`unknown scene: ${sceneId}`);
+    console.log(`use \x1b[38;5;208mhakcerline list\x1b[0m to see available scenes`);
+    return;
+  }
+  setConfigKey('only', [sceneId]);
+  console.log(`\x1b[38;5;46m✓\x1b[0m locked to \x1b[38;5;213m${match.name}\x1b[0m (${sceneId})`);
+  console.log(`\x1b[38;5;240mhakcerline play all — to unlock rotation\x1b[0m`);
+}
+
 function cmdStatus(): void {
   const cfg = loadConfig();
   const scenes = loadScenes(cfg, BUNDLED_SCENES);
@@ -400,6 +419,9 @@ async function main(): Promise<void> {
       return;
     case 'duration':
       cmdDuration(process.argv[3]);
+      return;
+    case 'play':
+      cmdPlay(process.argv[3]);
       return;
     case 'status':
       cmdStatus();

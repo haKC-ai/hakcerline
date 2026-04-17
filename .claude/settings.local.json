@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "vantabrain": {
+      "command": "node",
+      "args": [
+        "/home/hakcer/VantaBrain/mcp/server.js"
+      ],
+      "env": {
+        "BRAIN_HOME": "/home/hakcer/VantaBrain"
+      }
+    }
+  }
+}
