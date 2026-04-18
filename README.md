@@ -10,6 +10,7 @@
 # hakcerline
 
 ![hakcerline beams intro](assets/banner.gif)
+<img width="2572" height="1580" alt="le" src="https://github.com/user-attachments/assets/2a252de4-06fa-46aa-bcb2-3925de57e0dc" />
 
 [![npm](https://img.shields.io/npm/v/hakcerline?color=46&label=npm&logo=npm)](https://www.npmjs.com/package/hakcerline)
 [![downloads](https://img.shields.io/npm/dm/hakcerline?color=208&label=installs)](https://www.npmjs.com/package/hakcerline)
